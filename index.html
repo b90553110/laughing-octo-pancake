@@ -26,10 +26,14 @@
   <main>
     <section id="mission">
       <h2>Mission</h2>
-      <p class="empty">
-        No mission set yet. Run <code>/teach &lt;topic&gt;</code> and Claude will
-        interview you about why you want to learn it, then write
-        <code>MISSION.md</code>. Every lesson traces back to it.
+      <p>
+        <strong>Spring Boot, with Maven</strong> — taught in the register of a tech lead:
+        not just how to make it work, but why it is built this way and what matters in
+        review. Starting from solid Java and no Spring.
+      </p>
+      <p class="section-note">
+        The mission is still provisional. It sharpens once there is a concrete thing to
+        build — see <a href="MISSION.md">MISSION.md</a>.
       </p>
     </section>
 
@@ -41,6 +45,10 @@
       </p>
       <!-- Add one <li> per lesson as it is created. Keep newest last. -->
       <ol class="list" id="lesson-list">
+        <li>
+          <a href="lessons/0001-spring-boot-maven-first-service.html">Your first Spring Boot service</a>
+          <span class="meta">Lesson 1 · 8 Sep 2026 · ~20 min · one HTTP endpoint, built and tested</span>
+        </li>
       </ol>
       <p class="empty">No lessons yet.</p>
     </section>
@@ -53,6 +61,10 @@
       </p>
       <!-- Add one <li> per reference document in ./reference/. -->
       <ul class="list" id="reference-list">
+        <li>
+          <a href="reference/maven-spring-cheatsheet.html">Maven &amp; Spring Boot cheat sheet</a>
+          <span class="meta">Commands, pom.xml anatomy, annotations, Boot 3 → 4 gotchas · prints on two sides</span>
+        </li>
       </ul>
       <p class="empty">No reference documents yet.</p>
     </section>
@@ -65,7 +77,7 @@
         opened on this repo — including from a phone — picks it up automatically.
       </p>
       <p>Ask for a lesson with:</p>
-      <pre><code>/teach how German case endings work</code></pre>
+      <pre><code>/teach how dependency injection works in Spring</code></pre>
       <p>
         Claude writes the lesson into <code>lessons/</code>, links it from this page,
         and pushes. GitHub Pages redeploys within a minute or so, and the new lesson

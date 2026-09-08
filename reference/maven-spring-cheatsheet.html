@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Reference · Maven &amp; Spring Boot</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📋</text></svg>">
+  <link rel="stylesheet" href="../assets/lesson.css">
+</head>
+<body>
+
+<header class="masthead sheet">
+  <p class="crumb"><a href="../index.html">Workspace</a> · Reference</p>
+  <h1>Maven &amp; Spring Boot</h1>
+  <p class="standfirst">The compressed version. Built to print on two sides of A4.</p>
+  <p class="meta-line">Verified against Spring Boot 4.1.1, Java 21, Maven 3.9.11 · September 2026</p>
+</header>
+
+<main class="sheet">
+
+  <h2>Commands</h2>
+  <div class="scroll-x">
+  <table>
+    <thead><tr><th>Command</th><th>What it does</th></tr></thead>
+    <tbody>
+      <tr><td><code>./mvnw spring-boot:run</code></td><td>Run the app in place, no jar built. Your day-to-day loop.</td></tr>
+      <tr><td><code>./mvnw test</code></td><td>Compile and run tests only.</td></tr>
+      <tr><td><code>./mvnw package</code></td><td>Compile, test, and build the runnable jar into target/.</td></tr>
+      <tr><td><code>./mvnw clean package</code></td><td>Same, after deleting target/. Use when results look stale.</td></tr>
+      <tr><td><code>./mvnw package -DskipTests</code></td><td>Build without running tests. For speed; never for CI.</td></tr>
+      <tr><td><code>./mvnw dependency:tree</code></td><td>Show every transitive dependency. First stop for version conflicts.</td></tr>
+      <tr><td><code>./mvnw -o ...</code></td><td>Offline: fail rather than reach the network.</td></tr>
+      <tr><td><code>java -jar target/app-0.0.1-SNAPSHOT.jar</code></td><td>Run the packaged jar the way production will.</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <h2>pom.xml anatomy</h2>
+  <div class="scroll-x">
+  <table>
+    <thead><tr><th>Element</th><th>Purpose</th></tr></thead>
+    <tbody>
+      <tr><td><code>&lt;parent&gt;</code></td><td>Inherit spring-boot-starter-parent: tested versions for hundreds of libraries.</td></tr>
+      <tr><td><code>&lt;groupId&gt;</code></td><td>Your organisation, reverse-domain style: com.example.</td></tr>
+      <tr><td><code>&lt;artifactId&gt;</code></td><td>This project&#x27;s name: demo.</td></tr>
+      <tr><td><code>&lt;version&gt;</code></td><td>Yours. -SNAPSHOT means &#x27;in development, not released&#x27;.</td></tr>
+      <tr><td><code>&lt;properties&gt;</code></td><td>Build settings. java.version lives here.</td></tr>
+      <tr><td><code>&lt;dependencies&gt;</code></td><td>What you need. Omit &lt;version&gt; when the parent manages it.</td></tr>
+      <tr><td><code>&lt;scope&gt;test&lt;/scope&gt;</code></td><td>On the test classpath only; not shipped in the jar.</td></tr>
+      <tr><td><code>&lt;build&gt;&lt;plugins&gt;</code></td><td>spring-boot-maven-plugin builds the single runnable jar.</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <h2>Annotations you will meet first</h2>
+  <div class="scroll-x">
+  <table>
+    <thead><tr><th>Annotation</th><th>Meaning</th></tr></thead>
+    <tbody>
+      <tr><td><code>@SpringBootApplication</code></td><td>On the main class. Config + auto-configuration + component scan.</td></tr>
+      <tr><td><code>@RestController</code></td><td>Class handles HTTP and returns response bodies, not view names.</td></tr>
+      <tr><td><code>@GetMapping("/path")</code></td><td>Route a GET to this method. Also Post/Put/Delete/Patch variants.</td></tr>
+      <tr><td><code>@RequestParam</code></td><td>Bind a query-string value: /hello?name=Ada.</td></tr>
+      <tr><td><code>@PathVariable</code></td><td>Bind a URL segment: /users/{id}.</td></tr>
+      <tr><td><code>@RequestBody</code></td><td>Deserialise the JSON request body into an object.</td></tr>
+      <tr><td><code>@Service, @Component</code></td><td>Register a class as a managed bean, found by component scan.</td></tr>
+      <tr><td><code>@Configuration + @Bean</code></td><td>Define beans explicitly when annotation scanning will not do.</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <h2>Testing</h2>
+  <div class="scroll-x">
+  <table>
+    <thead><tr><th>Annotation / type</th><th>Use</th></tr></thead>
+    <tbody>
+      <tr><td><code>@SpringBootTest</code></td><td>Start the whole application context. Thorough, slower.</td></tr>
+      <tr><td><code>@WebMvcTest(X.class)</code></td><td>Web layer only, one controller. Fast; collaborators are mocked.</td></tr>
+      <tr><td><code>@AutoConfigureMockMvc</code></td><td>Add MockMvc to a @SpringBootTest.</td></tr>
+      <tr><td><code>MockMvc</code></td><td>Drive the full request path without opening a socket.</td></tr>
+      <tr><td><code>@MockitoBean</code></td><td>Replace a bean with a mock for this test context.</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <h2>Project layout</h2>
+  <div class="scroll-x">
+  <table>
+    <thead><tr><th>Path</th><th>Contains</th></tr></thead>
+    <tbody>
+      <tr><td><code>pom.xml</code></td><td>The build. Read this first in any unfamiliar project.</td></tr>
+      <tr><td><code>mvnw / mvnw.cmd</code></td><td>Maven wrapper. Always prefer over a system mvn.</td></tr>
+      <tr><td><code>src/main/java</code></td><td>Application code. Main class at the top package.</td></tr>
+      <tr><td><code>src/main/resources</code></td><td>application.properties, static files, templates.</td></tr>
+      <tr><td><code>src/test/java</code></td><td>Tests, mirroring the main package structure.</td></tr>
+      <tr><td><code>target/</code></td><td>Build output. Never committed.</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+
+  <h2>Versions that matter</h2>
+  <ul>
+    <li><strong>Spring Boot 4.1.1</strong> — current stable line as of September 2026.</li>
+    <li><strong>Java 17 minimum</strong> for Boot 4, tested through Java 26. Prefer an LTS: 17, 21 or 25.</li>
+    <li><strong>Maven 3.9.0+</strong> — the plugin's hard floor is 3.6.3, but the 3.8 line is end-of-life.</li>
+    <li><strong>Spring Framework 7</strong> underpins Boot 4; <strong>Jakarta EE 11</strong>, Servlet 6.1.</li>
+  </ul>
+
+  <h2>Boot 3 → 4 gotchas</h2>
+  <ul>
+    <li>Test slices moved to per-technology modules. <code>@WebMvcTest</code> and
+        <code>@AutoConfigureMockMvc</code> are now in
+        <code>org.springframework.boot.webmvc.test.autoconfigure</code>, from the
+        <code>spring-boot-webmvc-test</code> artifact — add it explicitly.</li>
+    <li><code>javax.*</code> became <code>jakarta.*</code> back in Boot 3. Any snippet with
+        <code>javax.servlet</code> is pre-2022 and will not compile.</li>
+    <li>Blog posts and generated code alike still use the old test imports. Trust the compiler.</li>
+  </ul>
+
+  <h2>Debugging order</h2>
+  <ol>
+    <li><strong>404 on a route you wrote?</strong> Check the controller is in a package
+        <em>below</em> the <code>@SpringBootApplication</code> class.</li>
+    <li><strong>Port already in use?</strong> Another run is alive, or set
+        <code>server.port=8081</code> in <code>application.properties</code>.</li>
+    <li><strong>Odd version errors?</strong> <code>./mvnw dependency:tree</code>, and look for a
+        library appearing twice.</li>
+    <li><strong>Import will not resolve?</strong> Suspect a version boundary, then check the
+        artifact is actually a dependency.</li>
+  </ol>
+
+  <p class="next">
+    <a href="../lessons/0001-spring-boot-maven-first-service.html">Lesson 01: Your first Spring Boot service</a>
+    · <a href="../index.html">workspace</a>
+  </p>
+
+</main>
+</body>
+</html>
