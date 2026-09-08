@@ -1,31 +1,44 @@
 # laughing-octo-pancake
 
-A small static webpage, ready to host on GitHub Pages.
+A learning workspace that publishes itself.
 
-## Files
+Claude Code generates lessons and reference material here using the
+[`teach` skill](.claude/skills/teach/SKILL.md); GitHub Pages serves them at
+<https://b90553110.github.io/laughing-octo-pancake/> so they are readable
+anywhere, including on a phone.
 
-| File | Purpose |
+## Using it
+
+Open this repository in Claude Code (web, desktop or phone) and run:
+
+```
+/teach <what you want to learn>
+```
+
+The first run interviews you about *why* you want to learn the topic and writes
+`MISSION.md`. After that, each run produces a lesson in `lessons/`, links it from
+`index.html`, and pushes — the site updates about a minute later.
+
+## Layout
+
+| Path | Purpose |
 | --- | --- |
-| `index.html` | The page itself |
-| `style.css` | All styling (light + dark themes) |
-| `.nojekyll` | Tells Pages to serve the files as-is, without Jekyll |
+| `index.html`, `style.css` | The published index page linking to all material |
+| `.claude/skills/teach/` | The teach skill, picked up automatically by Claude Code |
+| `CLAUDE.md` | Conventions Claude follows when adding material |
+| `lessons/` | Generated lessons (HTML, one per topic) |
+| `reference/` | Cheat sheets and glossaries, built to print well |
+| `learning-records/` | What you have demonstrably learned, steering what comes next |
+| `MISSION.md`, `RESOURCES.md`, `NOTES.md` | Workspace state written by the skill |
+| `.nojekyll` | Tells Pages to serve files as-is, without Jekyll |
+
+Only `index.html`, `style.css`, the skill and this README exist yet — the rest
+appear as the skill creates them.
 
 ## Publishing on GitHub Pages
 
-1. Push this branch and merge it into your default branch (`main`).
-2. On GitHub, go to **Settings → Pages**.
-3. Under **Build and deployment**, set **Source** to *Deploy from a branch*.
-4. Choose branch `main` and folder `/ (root)`, then **Save**.
-5. Wait about a minute. The site appears at
-   `https://b90553110.github.io/laughing-octo-pancake/`.
-
-To publish straight from this branch instead, pick it in step 4 rather than `main`.
-
-## Editing
-
-Open `index.html` and change the headings, text and links; adjust colours in the
-`:root` block at the top of `style.css`. There is no build step — commit and push,
-and Pages redeploys automatically.
+**Settings → Pages → Build and deployment → Source: Deploy from a branch**,
+branch `main`, folder `/ (root)`, then **Save**.
 
 ## Previewing locally
 
@@ -34,3 +47,10 @@ python3 -m http.server 8000
 ```
 
 Then open <http://localhost:8000>.
+
+## Credits
+
+The `teach` skill is a verbatim copy of `skills/productivity/teach` from
+[mattpocock/skills](https://github.com/mattpocock/skills).
+
+The `teach` skill is MIT licensed — see [THIRD-PARTY-LICENSES.md](THIRD-PARTY-LICENSES.md).
