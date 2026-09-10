@@ -28,3 +28,17 @@ Preferences and observations that shape how lessons get written.
 - Every command in lesson 01 was executed before publishing. Continue this: a
   lesson that does not run is worse than no lesson, and this ecosystem punishes
   recalled knowledge.
+
+## Session 2 (10 Sep 2026)
+
+- Asked for Flyway next, ahead of the beans/dependency-injection lesson promised
+  at the end of Lesson 01. Follow the learner's pull: they are evidently thinking
+  about real services (databases, deploys) rather than framework internals. Keep
+  the beans lesson queued, but do not force the order.
+- Explicitly said not to verify code by building it in a sandbox. Lesson 02 is
+  therefore version-checked but not executed, and says so in its header. Keep
+  that disclosure on any lesson that was not run — the distinction matters, and
+  claiming otherwise would poison the trust the whole workspace runs on.
+- Signal to watch: the tech-lead framing is landing on *operational* questions
+  (what breaks in production) more than on API surface. Weight future lessons
+  accordingly — migration design, rolling deploys, testing strategy.

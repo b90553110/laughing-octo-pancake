@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Reference · Flyway</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🗂️</text></svg>">
+  <link rel="stylesheet" href="../assets/lesson.css">
+</head>
+<body>
+
+<header class="masthead sheet">
+  <p class="crumb"><a href="../index.html">Workspace</a> · Reference</p>
+  <h1>Flyway</h1>
+  <p class="standfirst">Naming, properties, modules and the errors you will actually hit.</p>
+  <p class="meta-line">Spring Boot 4.1.1 · Flyway 12.4.0 (the version Boot 4.1.1 manages) · September 2026</p>
+</header>
+
+<main class="sheet">
+
+  <h2>The rule</h2>
+  <div class="note">
+    <span class="label">Never</span>
+    <p>Never edit a migration that has been applied anywhere but your own machine.
+    To change something, write a new migration.</p>
+  </div>
+
+  <h2>File naming</h2>
+  <div class="scroll-x">
+  <table>
+    <thead><tr><th>Filename</th><th>Meaning</th></tr></thead>
+    <tbody>
+      <tr><td><code>V2__add_last_login.sql</code></td><td>Versioned. Runs once, in version order. The normal case.</td></tr>
+      <tr><td><code>R__user_summary_view.sql</code></td><td>Repeatable. Re-runs whenever its checksum changes. Views, functions.</td></tr>
+      <tr><td><code>U2__undo_last_login.sql</code></td><td>Undo. Paid editions only — do not plan around it.</td></tr>
+      <tr><td><code>V2.1__tweak_index.sql</code></td><td>Dots allowed in versions. 2.1 sorts after 2, before 3.</td></tr>
+      <tr><td><code>V20260910__add_orders.sql</code></td><td>Timestamp versions. Avoids merge collisions between branches.</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <h2>Spring Boot properties</h2>
+  <div class="scroll-x">
+  <table>
+    <thead><tr><th>Property</th><th>Effect</th></tr></thead>
+    <tbody>
+      <tr><td><code>spring.flyway.enabled</code></td><td>Default true. Set false to disable, e.g. in a test slice.</td></tr>
+      <tr><td><code>spring.flyway.locations</code></td><td>Default classpath:db/migration. Comma-separated; filesystem: also works.</td></tr>
+      <tr><td><code>spring.flyway.baseline-on-migrate</code></td><td>Default false. True adopts an existing non-empty database.</td></tr>
+      <tr><td><code>spring.flyway.baseline-version</code></td><td>Version to record for that adopted starting state.</td></tr>
+      <tr><td><code>spring.flyway.validate-on-migrate</code></td><td>Default true. Leave it on. This is the safety net.</td></tr>
+      <tr><td><code>spring.flyway.out-of-order</code></td><td>Allow a lower version to apply after a higher one. Rarely wise.</td></tr>
+      <tr><td><code>spring.flyway.schemas</code></td><td>Which schema(s) to manage.</td></tr>
+      <tr><td><code>spring.jpa.hibernate.ddl-auto=validate</code></td><td>Not Flyway, but set it. Hibernate checks; Flyway owns.</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <h2>Database modules (Flyway 10+)</h2>
+  <div class="scroll-x">
+  <table>
+    <thead><tr><th>Database</th><th>Extra dependency</th></tr></thead>
+    <tbody>
+      <tr><td>PostgreSQL</td><td><code>flyway-database-postgresql</code></td></tr>
+      <tr><td>Oracle</td><td><code>flyway-database-oracle</code></td></tr>
+      <tr><td>MySQL / MariaDB</td><td><code>flyway-mysql</code></td></tr>
+      <tr><td>SQL Server</td><td><code>flyway-sqlserver</code></td></tr>
+      <tr><td>DB2</td><td><code>flyway-database-db2</code></td></tr>
+      <tr><td>Snowflake</td><td><code>flyway-database-snowflake</code></td></tr>
+      <tr><td>H2, HSQLDB, SQLite</td><td><code>none needed — built into flyway-core</code></td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <h2>Errors, decoded</h2>
+  <div class="scroll-x">
+  <table>
+    <thead><tr><th>Message</th><th>Cause and fix</th></tr></thead>
+    <tbody>
+      <tr><td><code>Unsupported Database: X</code></td><td>Missing the per-database module. See the table above.</td></tr>
+      <tr><td><code>Migrations simply never run</code></td><td>On Boot 4: you have flyway-core but not spring-boot-starter-flyway.</td></tr>
+      <tr><td><code>Checksum mismatch</code></td><td>An applied migration was edited. Revert it and add a new one.</td></tr>
+      <tr><td><code>Found non-empty schema without history</code></td><td>Existing database. Set baseline-on-migrate=true, once, deliberately.</td></tr>
+      <tr><td><code>Detected failed migration</code></td><td>A migration died partway. Fix the SQL, clean the partial state, repair.</td></tr>
+      <tr><td><code>Table already exists</code></td><td>Hibernate ddl-auto created it first. Set ddl-auto=validate.</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+
+  <h2>Startup sequence</h2>
+  <ol>
+    <li>Spring builds the <code>DataSource</code>.</li>
+    <li>Flyway runs, before the rest of the context: creates <code>flyway_schema_history</code>
+        if absent, validates checksums, applies anything pending.</li>
+    <li>Hibernate validates the schema against your entities (<code>ddl-auto=validate</code>).</li>
+    <li>The application starts. It never observes a half-migrated database.</li>
+  </ol>
+
+  <h2>Zero-downtime schema changes</h2>
+  <p>During a rolling deploy, the old and new versions of your app run against the same database.
+  Every migration must be compatible with the code already deployed.</p>
+  <ul>
+    <li><strong>Safe:</strong> adding a nullable column, adding a table, adding an index
+        (concurrently, on large tables).</li>
+    <li><strong>Unsafe alone:</strong> dropping or renaming a column, adding a <code>NOT NULL</code>
+        column without a default, narrowing a type.</li>
+    <li><strong>Renaming a column</strong> is four releases, not one: add the new column → backfill
+        it → write to both, read the new → drop the old.</li>
+  </ul>
+
+  <h2>Review checklist</h2>
+  <ol>
+    <li>Compatible with the currently deployed application version?</li>
+    <li>Will it hold a lock on a large table?</li>
+    <li>Anything irreversible — a drop, a truncate, a narrowing type change?</li>
+    <li>One logical change per migration?</li>
+    <li>Could the version number collide with another branch?</li>
+    <li>Has it been run against a copy of production-sized data?</li>
+  </ol>
+
+  <p class="next">
+    <a href="../lessons/0002-flyway-database-migrations.html">Lesson 02: Database migrations with Flyway</a>
+    · <a href="../index.html">workspace</a>
+  </p>
+
+</main>
+</body>
+</html>
