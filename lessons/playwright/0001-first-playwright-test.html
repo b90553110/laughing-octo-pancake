@@ -23,8 +23,7 @@
 <main class="wrap">
 
 <p>This track covers end-to-end testing, which has little in common with the Spring track apart
-from a shared concern: a test should fail when the application genuinely breaks, and at no other
-time.</p>
+from a shared concern: a test should fail when the application breaks, and at no other time.</p>
 
 <p>That second part is the difficult one. When an end-to-end suite fails for reasons unrelated to
 the application, people stop trusting the results, then stop reading them, and eventually delete
@@ -48,7 +47,7 @@ how it finds elements. This lesson covers waiting, and lesson 02 covers finding 
   <p>The installer suggests <code>tests/</code> as the folder name. Angular's own unit tests
   already live under <code>src/</code>, so a second folder called <code>tests/</code> makes it
   unclear which runner owns which file. Calling the folder <code>e2e/</code> keeps that boundary
-  obvious for everyone who works on the project.</p>
+  obvious to the next person who opens the project.</p>
 </div>
 
 <pre><code>my-angular-app/
@@ -134,7 +133,7 @@ sleeps, no CSS selectors, and no check that the button exists before the test cl
 an element, Playwright waits for that element to be present in the page, visible, stable, enabled,
 and able to receive the click. It keeps retrying those checks until they all pass or the timeout
 expires. Angular's rendering therefore needs no special handling, because an element that Angular
-has not rendered yet is simply an element Playwright is still waiting for.</p>
+has not rendered yet is an element Playwright is still waiting for.</p>
 
 <p>Assertions behave the same way. <code>expect(locator).toBeVisible()</code> retries until the
 condition holds or the timeout expires, so the final line of the test needs no wait either.</p>
@@ -144,7 +143,7 @@ condition holds or the timeout expires, so the final line of the test needs no w
   <p>Do not call <code>page.waitForTimeout()</code> in a test. A fixed sleep is either shorter than
   the operation, which makes the test fail intermittently, or longer than it needs to be, which
   makes the suite slow. On a mixture of developer laptops and CI machines it is usually both. Any
-  wait you genuinely need can be written as an assertion about the state of the page instead.</p>
+  wait you need can be expressed as an assertion about the state of the page instead.</p>
 </div>
 
 <h2><span class="num">04</span>Run the tests and read a failure</h2>
@@ -167,7 +166,7 @@ something you can look at directly, because you can see the state of the page at
 click went to the wrong place.</p>
 
 <div class="note">
-  <span class="label">Why on-first-retry rather than always</span>
+  <span class="label">Why on-first-retry rather than every run</span>
   <p>Recording a trace for every test run costs both time and disk space. The
   <code>on-first-retry</code> setting records nothing while tests pass, and produces a complete
   trace as soon as a test fails and Playwright retries it. You get the diagnostic information when
@@ -185,15 +184,15 @@ project, so it is worth being selective about what you cover with them.</p>
   are more useful than two hundred shallow ones.</li>
   <li><strong>Test component behaviour further down.</strong> Angular's own component tests run in
   a fraction of the time and give clearer failures for that kind of problem.</li>
-  <li><strong>Avoid asserting on styling or on exact wording</strong> unless the product genuinely
-  requires that exact text, because both change for reasons that have nothing to do with whether
+  <li><strong>Avoid asserting on styling or on exact wording</strong> unless the product depends on
+  that exact text, because both change for reasons that have nothing to do with whether
   the application works.</li>
 </ul>
 
 <div class="note">
   <span class="label">In review</span>
-  <p>When a pull request adds twenty end-to-end tests at once, ask which layer each test really
-  belongs to. A suite loses its value as soon as its runtime or its failure rate persuades the team
+  <p>When a pull request adds twenty end-to-end tests at once, ask which layer each test
+  belongs in. A suite loses its value as soon as its runtime or its failure rate persuades the team
   to stop reading the results, and adding many shallow tests is the usual way that happens.</p>
 </div>
 

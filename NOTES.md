@@ -93,3 +93,21 @@ Preferences and observations that shape how lessons get written.
   track, so I left them and reported the numbers instead of rewriting six files
   unasked.
 
+## Session 6 (15 Sep 2026)
+
+- The learner pointed at the stop-slop skill and asked for it to drive the style.
+  Installed it verbatim at `.claude/skills/stop-slop/`, recorded its MIT licence,
+  and made `CLAUDE.md` defer to it as the base rule set.
+- Wrote `tools/stop-slop-check.py` so the rules are enforceable rather than a
+  matter of my judgement. The workspace passes with zero findings.
+- Four of the skill's rules conflict with technical writing and with what the
+  learner asked for earlier. Adverbs that carry meaning, `never` as a precise
+  absolute, Wh- openers in quiz stems, and enumerations longer than two items all
+  stay. The reasoning sits in `CLAUDE.md` so nobody reverses it silently.
+- Removed all 71 em dashes. Rewrote Spring lesson 01, which was the last file in
+  the old conversational voice and the worst offender on every measure.
+- Refined the rhythm check twice while building it. Counting every short sentence
+  flagged plain imperatives such as "Use constructors.", which the learner asked
+  for. The real defect is stacked short sentences, so the checker now fails on
+  runs of two or more and reports the ratio as information only.
+

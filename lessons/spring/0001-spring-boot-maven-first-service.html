@@ -3,67 +3,69 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Lesson 1 · Your first Spring Boot service</title>
+  <title>Spring 1 · Your first Spring Boot service</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌱</text></svg>">
   <link rel="stylesheet" href="../../assets/lesson.css">
 </head>
 <body>
 
 <header class="masthead wrap">
-  <p class="crumb"><a href="../../index.html">Workspace</a> · Lesson 01</p>
+  <p class="crumb"><a href="../../index.html">Workspace</a> · Spring track · Lesson 01</p>
   <h1>Your first Spring Boot service</h1>
-  <p class="standfirst">One HTTP endpoint, built with Maven, running on your machine and covered by a test — and an honest account of what each file is doing.</p>
+  <p class="standfirst">One HTTP endpoint, built with Maven, running on your machine and covered by a test, with an account of what each file does.</p>
   <p class="meta-line">
     ~20 minutes · Spring Boot 4.1.1 · Java 21 · Maven 3.9.11<br>
-    Every command below was run end-to-end before this lesson was written.
+    I ran every command below end to end before writing this lesson.
   </p>
 </header>
 
 <main class="wrap">
 
-<p>You know Java. That means almost nothing here is new <em>language</em> — the new part is that
-you stop calling your code, and something else calls it for you. That inversion is the whole
-of Spring, and everything else is detail.</p>
+<p>You already write Java, so almost nothing here is new as a language. The new part is that you
+stop calling your own code and Spring calls it for you. That inversion accounts for most of the
+framework, and the rest follows from it.</p>
 
-<p>By the end you will have a service that answers <code>GET /hello</code>, and you will be able
-to say what every line in your <code>pom.xml</code> is for. That second half is the part that
-matters to me as your lead: people who can only regenerate a project from a website are stuck
-the first time the build breaks.</p>
+<p>By the end you will have a service that answers <code>GET /hello</code>, and you will be able to
+say what every line of your <code>pom.xml</code> does. The second half matters more than the first,
+because an engineer who can only regenerate a project from a website has no way forward the first
+time the build breaks.</p>
 
 <h2><span class="num">01</span>Check your tools</h2>
 
-<p>Two things must be installed. Run both:</p>
+<p>You need Java and Maven on your path, so run both of these commands and check the output:</p>
 
 <pre><code>java -version
 mvn -v</code></pre>
 
-<p>What you need, from the official requirements for this version:
-Spring Boot 4.1.1 needs <strong>Java 17 or newer</strong> (it is tested up to Java 26), and the
-Spring Boot Maven plugin needs <strong>Maven 3.6.3 or newer</strong> — though Maven itself now
-treats 3.9.0 as the floor for new plugin releases, so use 3.9+ and avoid a class of strange
-errors.<sup><a href="#s1">1</a><a href="#s3">,3</a></sup></p>
+<p>Spring Boot 4.1.1 requires <strong>Java 17 or newer</strong> and supports versions up to Java 26.
+The Spring Boot Maven plugin requires <strong>Maven 3.6.3 or newer</strong>, though the Maven
+project now treats 3.9.0 as the floor for new plugin releases, so install 3.9 or later and avoid a
+class of confusing errors.<sup><a href="#s1">1</a><a href="#s3">,3</a></sup></p>
 
 <div class="note">
-  <span class="label">Tech lead note</span>
-  <p>Pick a <strong>Long Term Support</strong> Java version — 17, 21 or 25 — not the newest one.
-  Non-LTS releases stop getting patches after six months, and you do not want your service's
-  security posture tied to a version nobody ships fixes for. I used 21 here.</p>
+  <span class="label">Recommendation</span>
+  <p>Choose a Long Term Support release of Java, meaning 17, 21 or 25, rather than the newest
+  version available. Non-LTS releases stop receiving patches after six months, and you do not want
+  the security posture of your service tied to a version that no longer receives fixes. I used 21
+  for this lesson.</p>
 </div>
 
 <h2><span class="num">02</span>Generate the skeleton</h2>
 
-<p>Nobody writes a Spring Boot project from an empty directory, and you should not either.
-Go to <a href="https://start.spring.io">start.spring.io</a> and choose:</p>
+<p>Start from the generator rather than an empty directory, because it produces the wrapper
+scripts and the test layout for you. Open <a href="https://start.spring.io">start.spring.io</a>
+and choose these options:</p>
 
 <ul>
   <li><strong>Project:</strong> Maven</li>
   <li><strong>Language:</strong> Java</li>
-  <li><strong>Spring Boot:</strong> the latest non-SNAPSHOT, non-M version (4.1.1 at time of writing)</li>
+  <li><strong>Spring Boot:</strong> the latest version without a SNAPSHOT or M suffix, which was
+  4.1.1 when I wrote this</li>
   <li><strong>Java:</strong> 21</li>
-  <li><strong>Dependencies:</strong> <em>Spring Web</em> — that one, nothing else, for now</li>
+  <li><strong>Dependencies:</strong> <em>Spring Web</em>, and nothing else for now</li>
 </ul>
 
-<p>Hit Generate, unzip it, open it. You get this:</p>
+<p>Generate the project, unzip it and open it, and you get the following layout:</p>
 
 <pre><code>demo/
 ├── pom.xml                    ← the build. Start here.
@@ -76,16 +78,16 @@ Go to <a href="https://start.spring.io">start.spring.io</a> and choose:</p>
         └── java/com/example/demo/DemoApplicationTests.java</code></pre>
 
 <div class="note plain">
-  <span class="label">Why so few files</span>
-  <p>Spring Boot's entire pitch is that configuration you did not write is configuration you
-  cannot get wrong. An equivalent Java web app in 2010 would have started with several
-  hundred lines of XML. That is what "auto-configuration" bought.</p>
+  <span class="label">Why there are so few files</span>
+  <p>Spring Boot exists to remove configuration you would otherwise write and get wrong. The
+  equivalent Java web application in 2010 opened with several hundred lines of XML. Removing that
+  is what the term auto-configuration refers to.</p>
 </div>
 
 <h2><span class="num">03</span>Read the pom.xml</h2>
 
-<p>This is the file to actually understand. Maven reads it to answer two questions: <em>what
-does this project depend on</em>, and <em>how is it built</em>.</p>
+<p>This is the file worth understanding. Maven reads it to answer two questions: what this project
+depends on, and how to build it.</p>
 
 <div class="filename">pom.xml</div>
 <pre><code>&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?&gt;
@@ -133,33 +135,34 @@ does this project depend on</em>, and <em>how is it built</em>.</p>
   &lt;/build&gt;
 &lt;/project&gt;</code></pre>
 
-<p>Four things are happening, and the numbered comments map to them:</p>
+<p>Four things happen here, and the numbered comments mark each one:</p>
 
 <ol>
-  <li><strong>The parent.</strong> Your project inherits from <code>spring-boot-starter-parent</code>.
-  Its job is a giant, tested list of "if you use library X, use exactly version Y" — every
-  Spring library, plus Jackson, Tomcat, JUnit, Logback and hundreds more, all versions known
-  to work <em>together</em>.</li>
-  <li><strong>Coordinates.</strong> <code>groupId</code> + <code>artifactId</code> + <code>version</code>
-  uniquely name your artifact, the same way every dependency below is named.</li>
-  <li><strong>Dependencies, with no version numbers.</strong> This is the payoff from (1). A
-  <em>starter</em> is a curated bundle: <code>spring-boot-starter-web</code> pulls in Spring MVC,
-  JSON handling, and an embedded Tomcat, because you asked for "web" rather than for
-  nine libraries by name.</li>
+  <li><strong>The parent.</strong> Your project inherits from
+  <code>spring-boot-starter-parent</code>, which supplies a large, tested list of the form "if you
+  use library X, use exactly version Y". That list covers every Spring library plus Jackson,
+  Tomcat, JUnit, Logback and several hundred more, at versions known to work together.</li>
+  <li><strong>Coordinates.</strong> The <code>groupId</code>, <code>artifactId</code> and
+  <code>version</code> name your artifact, in the same way that every dependency below names
+  itself.</li>
+  <li><strong>Dependencies with no version numbers.</strong> This is what the parent buys you. A
+  starter is a curated bundle, so <code>spring-boot-starter-web</code> brings in Spring MVC, JSON
+  handling and an embedded Tomcat because you asked for "web" instead of naming nine libraries
+  yourself.</li>
   <li><strong>The plugin.</strong> <code>spring-boot-maven-plugin</code> repackages your compiled
-  classes plus every dependency into a single runnable jar.</li>
+  classes and all their dependencies into a single runnable jar.</li>
 </ol>
 
 <div class="note">
-  <span class="label">Tech lead note</span>
-  <p>When you review a <code>pom.xml</code> and see an explicit <code>&lt;version&gt;</code> on a
-  Spring dependency, ask why. Usually someone pinned a version to fix one bug and silently
-  desynchronised it from the rest of the set. That is a genuine source of 3am incidents.</p>
+  <span class="label">In review</span>
+  <p>When you see an explicit <code>&lt;version&gt;</code> on a Spring dependency in a
+  <code>pom.xml</code>, ask why it is there. Usually somebody pinned a version to fix one bug and
+  left it out of step with the rest of the tested set, which is a genuine source of incidents.</p>
 </div>
 
 <h2><span class="num">04</span>The application class</h2>
 
-<p>It was generated for you. It is three meaningful lines:</p>
+<p>The generator wrote this for you, and it contains three meaningful lines:</p>
 
 <div class="filename">src/main/java/com/example/demo/DemoApplication.java</div>
 <pre><code>package com.example.demo;
@@ -174,27 +177,27 @@ public class DemoApplication {
     }
 }</code></pre>
 
-<p><code>@SpringBootApplication</code> is three annotations in a trench coat:</p>
+<p><code>@SpringBootApplication</code> combines three annotations:</p>
 
 <ul>
-  <li><code>@SpringBootConfiguration</code> — this class can define beans</li>
-  <li><code>@EnableAutoConfiguration</code> — look at what is on the classpath and configure it.
-  Tomcat is on the classpath, so start a web server.</li>
-  <li><code>@ComponentScan</code> — scan <em>this package and everything below it</em> for classes
-  to manage</li>
+  <li><code>@SpringBootConfiguration</code> lets this class define beans.</li>
+  <li><code>@EnableAutoConfiguration</code> inspects the classpath and configures what it finds.
+  Tomcat is on the classpath, so Spring starts a web server.</li>
+  <li><code>@ComponentScan</code> scans this package and everything below it for classes to
+  manage.</li>
 </ul>
 
 <div class="note plain">
   <span class="label">The one layout rule</span>
-  <p>Because of <code>@ComponentScan</code>, your application class must sit in the <em>top</em>
-  package, with all other code beneath it. Put a controller in a sibling package and Spring will
-  not find it, and you will get a 404 with no error at startup. This is the single most common
-  way a first Spring project goes quietly wrong.</p>
+  <p>Because of <code>@ComponentScan</code>, your application class must sit in the top package
+  with all other code beneath it. Put a controller in a sibling package and Spring will not find
+  it, so you get a 404 with no error at startup. This is the most common way a first Spring project
+  goes wrong without telling you.</p>
 </div>
 
 <h2><span class="num">05</span>Add an endpoint</h2>
 
-<p>New file, next to <code>DemoApplication.java</code>:</p>
+<p>Create a new file next to <code>DemoApplication.java</code>:</p>
 
 <div class="filename">src/main/java/com/example/demo/GreetingController.java</div>
 <pre><code>package com.example.demo;
@@ -212,9 +215,9 @@ public class GreetingController {
     }
 }</code></pre>
 
-<p>You never construct <code>GreetingController</code>. At startup, component scanning finds it,
-Spring creates one instance, and registers <code>/hello</code> in a routing table. That is the
-inversion: your class is a thing that gets called, not a thing that runs.</p>
+<p>You never construct <code>GreetingController</code> yourself. At startup, component scanning
+finds the class, Spring creates one instance, and Spring registers <code>/hello</code> in a routing
+table. Your class is something Spring calls rather than something you run.</p>
 
 <h2><span class="num">06</span>Run it</h2>
 
@@ -226,25 +229,25 @@ inversion: your class is a thing that gets called, not a thing that runs.</p>
 curl "localhost:8080/hello?name=Ada"</code></pre>
 </div>
 
-<p>You should see <code>Hello, world!</code> and <code>Hello, Ada!</code>. In the startup log,
-the line worth reading is:</p>
+<p>You should see <code>Hello, world!</code> and <code>Hello, Ada!</code>. In the startup log, these
+are the lines worth reading:</p>
 
 <pre><code>Tomcat started on port 8080 (http) with context path '/'
 Started DemoApplication in 1.691 seconds</code></pre>
 
-<p>You did not install Tomcat, configure it, or deploy anything to it. It arrived as a
-dependency of the web starter and was started by auto-configuration.</p>
+<p>You did not install Tomcat, configure it, or deploy anything to it. Tomcat arrived as a
+dependency of the web starter, and auto-configuration started it.</p>
 
 <div class="note plain">
-  <span class="label">./mvnw vs mvn</span>
-  <p>Use <code>./mvnw</code> — the Maven <em>wrapper</em> script in your project. It downloads and
-  uses the exact Maven version the project expects, so your machine, your teammate's machine and
-  CI all build identically. <code>mvn</code> uses whatever happens to be installed.</p>
+  <span class="label">Use ./mvnw rather than mvn</span>
+  <p><code>./mvnw</code> is the Maven wrapper script in your project. It downloads and uses the
+  exact Maven version the project expects, so your machine, a teammate's machine and CI all build
+  identically. Plain <code>mvn</code> uses whichever version happens to be installed.</p>
 </div>
 
 <h2><span class="num">07</span>Test it</h2>
 
-<p>An endpoint with no test is a demo, not a service. Add one:</p>
+<p>An endpoint without a test is a demonstration rather than a service. Add one:</p>
 
 <div class="filename">src/test/java/com/example/demo/GreetingControllerTest.java</div>
 <pre><code>package com.example.demo;
@@ -276,7 +279,8 @@ class GreetingControllerTest {
     }
 }</code></pre>
 
-<p>And add the module that provides those test annotations to your <code>&lt;dependencies&gt;</code>:</p>
+<p>Then add the module that supplies those test annotations to your
+<code>&lt;dependencies&gt;</code>:</p>
 
 <div class="filename">pom.xml</div>
 <pre><code>&lt;dependency&gt;
@@ -286,32 +290,31 @@ class GreetingControllerTest {
 &lt;/dependency&gt;</code></pre>
 
 <div class="note">
-  <span class="label">A real trap, hit while writing this</span>
-  <p>Nearly every tutorial online imports <code>@AutoConfigureMockMvc</code> and <code>@WebMvcTest</code>
-  from <code>org.springframework.boot.test.autoconfigure.web.servlet</code>. In Spring Boot 4 that
-  package <strong>no longer exists</strong> — test slices were split into per-technology modules,
-  and the class now lives in <code>org.springframework.boot.webmvc.test.autoconfigure</code>,
-  supplied by <code>spring-boot-webmvc-test</code>. I hit exactly this compile error building this
-  lesson. When an import that "should" work does not, suspect a version boundary before you
-  suspect yourself.</p>
+  <span class="label">A trap I hit while writing this</span>
+  <p>Most tutorials online import <code>@AutoConfigureMockMvc</code> and <code>@WebMvcTest</code>
+  from <code>org.springframework.boot.test.autoconfigure.web.servlet</code>. Spring Boot 4 removed
+  that package and split test slices into per-technology modules, so the class now lives in
+  <code>org.springframework.boot.webmvc.test.autoconfigure</code> and arrives with
+  <code>spring-boot-webmvc-test</code>. I hit this compile error while building the lesson. When an
+  import that should work does not, suspect a version boundary before you suspect yourself.</p>
 </div>
 
 <div class="task">
   <span class="label">Do this</span>
   <pre><code>./mvnw test</code></pre>
-  <p>Expected: <code>Tests run: 1, Failures: 0, Errors: 0</code>.</p>
+  <p>Expect <code>Tests run: 1, Failures: 0, Errors: 0</code>.</p>
 </div>
 
-<p><code>MockMvc</code> calls your controller through the full Spring request path — routing,
-parameter binding, response conversion — without opening a socket. Fast enough to run on
-every save.</p>
+<p><code>MockMvc</code> calls your controller through the full Spring request path, covering
+routing, parameter binding and response conversion, without opening a socket. It runs fast enough
+to use on every save.</p>
 
 <hr>
 
 <h2><span class="num">08</span>Check yourself</h2>
 
-<p>Answer before you scroll back. Retrieving something is what makes it stick; re-reading
-mostly makes it feel familiar.</p>
+<p>Answer before scrolling back. Retrieving something from memory is what makes it stick, whereas
+re-reading mostly makes it feel familiar.</p>
 
 <div class="quiz">
 
@@ -321,9 +324,9 @@ mostly makes it feel familiar.</p>
     <button type="button">Faster downloads for the remote artifacts you fetch</button>
     <button type="button">Tested version numbers for the libraries you list</button>
     <button type="button">Generated boilerplate for the classes you must write</button>
-    <p class="why" hidden>It is dependency <em>management</em>: a curated set of versions known to
-    work together, which is why your dependencies carry no version tags. It ships no code of
-    its own.</p>
+    <p class="why" hidden>It supplies dependency management: a curated set of versions known to work
+    together, which is why your dependencies carry no version tags. It ships no code of its
+    own.</p>
   </div>
 
   <div class="q" data-answer="1">
@@ -332,9 +335,9 @@ mostly makes it feel familiar.</p>
     <button type="button">The web starter dependency brought it all along</button>
     <button type="button">The Maven plugin fetched it during the build</button>
     <button type="button">The parent POM declared it a plugin dependency</button>
-    <p class="why" hidden><code>spring-boot-starter-web</code> pulls in an embedded Tomcat, and
-    auto-configuration starts it because it is on the classpath. Remove that starter and the
-    same code runs as a plain command-line app.</p>
+    <p class="why" hidden><code>spring-boot-starter-web</code> brings in an embedded Tomcat, and
+    auto-configuration starts it because it sits on the classpath. Remove that starter and the same
+    code runs as a plain command-line application.</p>
   </div>
 
   <div class="q" data-answer="3">
@@ -343,37 +346,38 @@ mostly makes it feel familiar.</p>
     <button type="button">Boot 4 removed it from the test starter</button>
     <button type="button">Boot 4 requires it be a runtime scope</button>
     <button type="button">Boot 4 split it into a separate module</button>
-    <p class="why" hidden>Test slices moved into per-technology modules. The class kept its name
-    and moved to <code>org.springframework.boot.webmvc.test.autoconfigure</code>, in the
-    <code>spring-boot-webmvc-test</code> artifact you have to add.</p>
+    <p class="why" hidden>Spring Boot 4 moved test slices into per-technology modules. The class
+    kept its name and moved to <code>org.springframework.boot.webmvc.test.autoconfigure</code>, in
+    the <code>spring-boot-webmvc-test</code> artifact you have to add.</p>
   </div>
 
 </div>
 
 <h2><span class="num">09</span>Read this next</h2>
 
-<p>One primary source, not ten blog posts. Spring's own guide covers this same ground in the
-maintainers' words, and it is kept current with the release:</p>
+<p>Read one primary source rather than ten blog posts. Spring's own guide covers this ground in the
+maintainers' words and stays current with each release.</p>
 
 <p><strong><a href="https://spring.io/guides/gs/rest-service">Building a RESTful Web Service</a></strong>
-— the official getting-started guide. 15 minutes. Read it after this lesson and notice where it
-differs from what you just built; the differences are where your version-specific knowledge lives.</p>
+is the official getting-started guide and takes about fifteen minutes. Read it after this lesson
+and note where it differs from what you built, because those differences are where your
+version-specific knowledge lives.</p>
 
-<p>Keep the <a href="../../reference/maven-spring-cheatsheet.html">Maven &amp; Spring Boot reference sheet</a>
-open while you work. It is built to print.</p>
+<p>Keep the <a href="../../reference/maven-spring-cheatsheet.html">Maven and Spring Boot reference
+sheet</a> open while you work. It prints well.</p>
 
 <div class="note">
   <span class="label">Ask me</span>
-  <p>I am your teacher here, not a document — anything above that was hand-wavy is a fair
-  question, and "why is it done this way" is the best kind. Open this workspace in Claude Code
-  and ask. If something in this lesson does not match what you see on your machine, tell me:
-  that is a lesson bug, and I will fix the file.</p>
+  <p>Anything above that reads as hand-waving is a fair question, and "why is it done this way" is
+  the most useful kind. Open this workspace in Claude Code and ask. If something here does not
+  match what you see on your machine, tell me, because that is a bug in the lesson and I will fix
+  the file.</p>
 </div>
 
 <h2 id="sources"><span class="num">10</span>Sources</h2>
 
 <ol class="sources">
-  <li id="s1"><a href="https://docs.spring.io/spring-boot/system-requirements.html">System Requirements — Spring Boot reference documentation</a>. Java and build-tool baselines for 4.1.x.</li>
+  <li id="s1"><a href="https://docs.spring.io/spring-boot/system-requirements.html">System Requirements, Spring Boot reference documentation</a>. Java and build-tool baselines for 4.1.x.</li>
   <li id="s2"><a href="https://docs.spring.io/spring-boot/maven-plugin/index.html">Spring Boot Maven Plugin documentation</a>. Minimum Maven version and the repackage goal.</li>
   <li id="s3"><a href="https://maven.apache.org/docs/history.html">Maven Releases History</a>. Support status of the 3.8 and 3.9 lines.</li>
   <li id="s4"><a href="https://github.com/spring-projects/spring-boot/wiki/Spring-Boot-4.0-Migration-Guide">Spring Boot 4.0 Migration Guide</a>. The module restructuring behind the test-slice move.</li>
@@ -381,9 +385,8 @@ open while you work. It is built to print.</p>
 </ol>
 
 <p class="next">
-  Lesson 01 of an ongoing course · <a href="../../index.html">back to the workspace</a><br>
-  Next up, most likely: what a <em>bean</em> actually is, and why constructor injection is the
-  only form worth using.
+  Spring track, Lesson 01 · <a href="0002-flyway-database-migrations.html">next</a> ·
+  <a href="../../index.html">workspace</a>
 </p>
 
 </main>

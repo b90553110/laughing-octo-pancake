@@ -91,7 +91,7 @@
       <tr><td>SQL Server</td><td><code>flyway-sqlserver</code></td></tr>
       <tr><td>DB2</td><td><code>flyway-database-db2</code></td></tr>
       <tr><td>Snowflake</td><td><code>flyway-database-snowflake</code></td></tr>
-      <tr><td>H2, HSQLDB, SQLite</td><td><code>none — built into flyway-core</code></td></tr>
+      <tr><td>H2, HSQLDB, SQLite</td><td><code>none, built into flyway-core</code></td></tr>
     </tbody>
   </table>
   </div>
@@ -138,14 +138,14 @@
 
   <h2>Which tool for which problem</h2>
   <ul>
-    <li><strong>Rebuild the database</strong> — iterating on your own unmerged migration. Use this
+    <li><strong>Rebuild the database</strong>. Iterating on your own unmerged migration. Use this
         by default.</li>
-    <li><strong><code>clean</code></strong> — wipes the schema. Spring Boot disables it. Enable it
+    <li><strong><code>clean</code></strong>. Wipes the schema. Spring Boot disables it. Enable it
         in a development profile only.</li>
-    <li><strong><code>repair</code></strong> — fixes checksum rows after a cosmetic edit, or
+    <li><strong><code>repair</code></strong>. Fixes checksum rows after a cosmetic edit, or
         clears a failed-migration row. It re-runs no SQL.</li>
-    <li><strong><code>baseline</code></strong> — adopts a pre-existing database. Run once.</li>
-    <li><strong>Renumber</strong> — resolves duplicate versions and late arrivals. Only on a
+    <li><strong><code>baseline</code></strong>. Adopts a pre-existing database. Run once.</li>
+    <li><strong>Renumber</strong>. Resolves duplicate versions and late arrivals. Only on a
         migration that has not run on a shared environment.</li>
   </ul>
 

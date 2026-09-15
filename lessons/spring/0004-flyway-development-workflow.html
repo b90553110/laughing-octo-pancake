@@ -37,7 +37,7 @@ freely.</p>
 next startup fails validation. You need to discard the local database state, and three mechanisms
 exist. They differ in risk.</p>
 
-<h3>Rebuild the database — use this one</h3>
+<h3>Rebuild the database, use this one</h3>
 
 <p>Destroy the container and recreate it. Flyway then applies your edited migration from empty,
 which is exactly what CI and every fresh environment will do.</p>
@@ -64,14 +64,14 @@ docker compose down -v &amp;&amp; docker compose up -d db
   and the repository stops describing the schema. Optimise the reset, not the workaround.</p>
 </div>
 
-<h3>flyway clean — narrower, and disabled by default</h3>
+<h3>flyway clean, narrower, and disabled by default</h3>
 
 <p><code>clean</code> drops every object in the configured schemas. Spring Boot sets
 <code>spring.flyway.clean-disabled</code> to <code>true</code>, so the command fails until you
 enable it explicitly:</p>
 
 <div class="filename">application-dev.properties</div>
-<pre><code># application-dev.properties — LOCAL DEVELOPMENT ONLY
+<pre><code># application-dev.properties. LOCAL DEVELOPMENT ONLY
 spring.flyway.clean-disabled=false</code></pre>
 
 <div class="note">
@@ -83,7 +83,7 @@ spring.flyway.clean-disabled=false</code></pre>
   equivalent risk, which is why §01 recommends it instead.</p>
 </div>
 
-<h3>repair — the wrong tool here</h3>
+<h3>repair, the wrong tool here</h3>
 
 <p><code>repair</code> overwrites stored checksums to match your files. It does not re-run the
 edited SQL, so your database keeps the schema the <em>old</em> version of the migration produced
@@ -93,7 +93,7 @@ other machine. Do not use <code>repair</code> to iterate.</p>
 <h2><span class="num">02</span>Squash before you merge</h2>
 
 <p>Your branch's migration history is working material, not a record anyone needs. Collapse it into
-the migration you actually intend to ship:</p>
+the migration you intend to ship:</p>
 
 <pre><code># Before: your branch, after two days of iteration
 V20260915103000__add_users_phone.sql
@@ -138,7 +138,7 @@ INSERT INTO users (email, display_name) VALUES
 <p>The <code>R__</code> prefix marks a repeatable migration. Flyway runs repeatable migrations
 after all versioned migrations, and re-runs each one whenever its checksum changes. Seed data
 therefore updates when you edit the file, with no version number to manage. Make the script
-idempotent — the <code>DELETE</code> above does that — because Flyway will run it more than once.</p>
+idempotent, the <code>DELETE</code> above does that, because Flyway will run it more than once.</p>
 
 <div class="note">
   <span class="label">Constraint</span>
@@ -164,7 +164,7 @@ situation precisely.</p>
   migration</code>. Fix the SQL, manually revert whatever the partial run left behind, then run
   <code>repair</code> to remove the failed row. PostgreSQL runs DDL transactionally, so this is
   rarer there than on MySQL.</li>
-  <li><strong>Someone edited an applied migration and the change is genuinely cosmetic.</strong>
+  <li><strong>Someone edited an applied migration and the change is cosmetic.</strong>
   Run <code>repair</code>. This is the only legitimate use of the command.</li>
 </ul>
 
@@ -180,7 +180,7 @@ situation precisely.</p>
   <span class="label">One default worth knowing</span>
   <p>Spring Boot sets <code>spring.flyway.ignore-migration-patterns</code> to
   <code>*:future</code>. Flyway therefore tolerates a database that holds migrations <em>newer</em>
-  than the files present — the state produced by rolling an application back without rolling back
+  than the files present, the state produced by rolling an application back without rolling back
   its schema. Startup succeeds rather than failing, which is the behaviour you want during a
   rollback.</p>
 </div>
@@ -247,7 +247,7 @@ situation precisely.</p>
 <h2><span class="num">07</span>Read this next</h2>
 
 <p><strong><a href="https://documentation.red-gate.com/fd/flyway-clean-disabled-setting-277578981.html">Flyway Clean Disabled Setting</a></strong>
-— Redgate's documentation for <code>cleanDisabled</code>, including why the parameter exists.</p>
+is Redgate's documentation for <code>cleanDisabled</code>, including why the parameter exists.</p>
 
 <p>Return to <a href="0003-flyway-team-conflicts.html">Lesson 03</a> for the team-facing failures,
 and keep the <a href="../../reference/flyway-cheatsheet.html">Flyway reference sheet</a> open while

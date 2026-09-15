@@ -22,8 +22,7 @@
 <main class="wrap">
 
 <p>End-to-end suites usually become unusable in the same way. A developer restructures a component,
-a large number of tests fail at once, nobody can work out which of those failures represent real
-bugs, and the team marks the suite as skipped. In most cases the locators are what caused it.</p>
+a large number of tests fail at once, the team cannot tell which of those failures represent real bugs, and the team marks the suite as skipped. In most cases the locators are what caused it.</p>
 
 <p>The reason is straightforward. A locator that describes the structure of the DOM breaks whenever
 that structure changes, including changes that make no difference to anyone using the application.
@@ -117,7 +116,7 @@ await page.getByRole(&#x27;listitem&#x27;)
 <div class="note">
   <span class="label">In review</span>
   <p>Question any use of <code>.first()</code>, <code>.last()</code> or <code>.nth(n)</code> unless
-  the test is genuinely about position, such as checking that the newest item appears at the top of
+  the test is about position, such as checking that the newest item appears at the top of
   a list. In other cases these methods conceal an ambiguity that will eventually resolve to a
   different element.</p>
 </div>

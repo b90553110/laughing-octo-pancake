@@ -44,9 +44,9 @@ it. Flyway inserts one row per applied migration:</p>
 and takes one of three actions per file:</p>
 
 <ul>
-  <li><strong>No matching row</strong> — Flyway runs the file, then inserts a row.</li>
-  <li><strong>Matching row, identical checksum</strong> — Flyway skips the file.</li>
-  <li><strong>Matching row, different checksum</strong> — Flyway aborts startup.</li>
+  <li><strong>No matching row.</strong> Flyway runs the file, then inserts a row.</li>
+  <li><strong>Matching row, identical checksum.</strong> Flyway skips the file.</li>
+  <li><strong>Matching row, different checksum.</strong> Flyway aborts startup.</li>
 </ul>
 
 <p>The third action enforces the rule in §06. Every Flyway behaviour that surprises people
@@ -65,7 +65,7 @@ follows from these three lines.</p>
 
 <p>Add four dependencies. Two of them trip people on current versions.</p>
 
-<div class="filename">pom.xml — inside &lt;dependencies&gt;</div>
+<div class="filename">pom.xml, inside &lt;dependencies&gt;</div>
 <pre><code>&lt;!-- Spring Boot 4: the STARTER. flyway-core alone does nothing. --&gt;
 &lt;dependency&gt;
   &lt;groupId&gt;org.springframework.boot&lt;/groupId&gt;
@@ -103,10 +103,10 @@ follows from these three lines.</p>
   Omit the correct module and Flyway aborts startup with <code>Unsupported Database</code>. The
   artifact names are inconsistent:</p>
   <ul>
-    <li>PostgreSQL — <code>flyway-database-postgresql</code></li>
-    <li>Oracle — <code>flyway-database-oracle</code></li>
-    <li>MySQL and MariaDB — <code>flyway-mysql</code> (no "database" segment)</li>
-    <li>SQL Server — <code>flyway-sqlserver</code> (no "database" segment)</li>
+    <li>PostgreSQL: <code>flyway-database-postgresql</code></li>
+    <li>Oracle: <code>flyway-database-oracle</code></li>
+    <li>MySQL and MariaDB: <code>flyway-mysql</code> (no "database" segment)</li>
+    <li>SQL Server: <code>flyway-sqlserver</code> (no "database" segment)</li>
   </ul>
   <p>H2 and SQLite require no module, which is why tutorials that demonstrate against H2 never
   mention this.</p>
@@ -233,7 +233,7 @@ responses exist, and they are not equivalent:</p>
   <li><strong>Revert the file</strong> to the version Flyway applied, then put your change in a
   new migration. Choose this in almost every case.</li>
   <li><strong>Run <code>flyway repair</code></strong>, which overwrites the stored checksums with
-  the checksums of your current files. This is correct only when the SQL logic did not change —
+  the checksums of your current files. This is correct only when the SQL logic did not change 
   a corrected comment, reformatted whitespace. Run it after a logic change and it resolves
   nothing: it records agreement between a database and a repository that still disagree.</li>
 </ul>
@@ -303,7 +303,7 @@ responses exist, and they are not equivalent:</p>
     <button type="button">Boot 4 needs migrations named a different way</button>
     <p class="why" hidden>Spring Boot 4 auto-configures Flyway from
     <code>spring-boot-starter-flyway</code>, not from <code>flyway-core</code>. The silence makes
-    this expensive to diagnose: nothing fails, and the tables simply do not exist.</p>
+    this expensive to diagnose: nothing fails, and the tables do not exist.</p>
   </div>
 
 </div>
@@ -311,7 +311,7 @@ responses exist, and they are not equivalent:</p>
 <h2><span class="num">09</span>Read this next</h2>
 
 <p><strong><a href="https://documentation.red-gate.com/fd/quickstart-how-flyway-works-184127223.html">How Flyway Works</a></strong>
-— Redgate's description of the migration lifecycle and the history table. Read the maintainers'
+covers Redgate's description of the migration lifecycle and the history table. Read the maintainers'
 account before any third-party tutorial.</p>
 
 <p>Continue with <a href="0003-flyway-team-conflicts.html">Lesson 03: version conflicts across a
@@ -323,7 +323,7 @@ open while you write migrations.</p>
   <span class="label">Ask me</span>
   <p>Migration design on a live schema is harder than Flyway itself. Ask for the
   add/backfill/dual-write/drop sequence on a concrete example, or for how to test migrations
-  against a real database. If any output on your machine differs from this lesson, report it —
+  against a real database. If any output on your machine differs from this lesson, report it, 
   I will correct the file.</p>
 </div>
 

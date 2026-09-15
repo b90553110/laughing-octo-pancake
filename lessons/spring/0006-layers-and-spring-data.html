@@ -21,8 +21,8 @@
 
 <main class="wrap">
 
-<p><a href="0002-flyway-database-migrations.html">Lesson 02</a> created a <code>users</code> table.
-Nothing in the application has read it since. This lesson closes that gap and answers the question
+<p><a href="0002-flyway-database-migrations.html">Lesson 02</a> created a <code>users</code> table
+that nothing in the application has read since. This lesson closes that gap and answers the question
 every new Spring codebase raises: where does the logic go?</p>
 
 <h2><span class="num">01</span>The three layers</h2>
@@ -44,11 +44,11 @@ PostgreSQL        schema owned by Flyway</code></pre>
 <p>Each layer has exactly one responsibility:</p>
 
 <ul>
-  <li><strong>Controller</strong> — translate HTTP into a method call and the result back into
+  <li><strong>Controller</strong>. Translate HTTP into a method call and the result back into
   HTTP. It contains no business rules.</li>
-  <li><strong>Service</strong> — enforce business rules and define the transaction boundary. It
+  <li><strong>Service</strong>. Enforce business rules and define the transaction boundary. It
   knows nothing about HTTP.</li>
-  <li><strong>Repository</strong> — read and write rows. It enforces no rules.</li>
+  <li><strong>Repository</strong>. Read and write rows. It enforces no rules.</li>
 </ul>
 
 <div class="note">
@@ -103,13 +103,13 @@ public class User {
   <span class="label">Constraint</span>
   <p>Never let an entity define the schema. With <code>ddl-auto=validate</code> from Lesson 02,
   Hibernate compares this class against the real table at startup and fails on any mismatch. Adding
-  a field here does not add a column — write a migration, then add the field. The startup failure
+  a field here does not add a column, write a migration, then add the field. The startup failure
   is the mechanism that keeps the two in step.</p>
 </div>
 
 <h2><span class="num">03</span>The repository</h2>
 
-<p>Declare an interface. Write no implementation.</p>
+<p>Declare an interface and write no implementation of it:</p>
 
 <div class="filename">src/main/java/com/example/demo/user/UserRepository.java</div>
 <pre><code>package com.example.demo.user;
@@ -147,9 +147,9 @@ countByCreatedAtAfter(Instant since)
 
 <div class="note">
   <span class="label">Two consequences of name-derived queries</span>
-  <p>First, a misspelled property name fails at <em>startup</em>, not at call time — Spring Data
+  <p>First, a misspelled property name fails at <em>startup</em>, not at call time. Spring Data
   cannot parse the name and refuses to build the context. Treat that failure as a compile error.</p>
-  <p>Second, derived names stop scaling. A method named
+  <p>Second, derived names stop scaling, because a method named
   <code>findByEmailAndDisplayNameOrCreatedAtAfter</code> is unreadable. Switch to
   <code>@Query</code> with explicit JPQL once a name exceeds roughly four conditions.</p>
 </div>
@@ -191,7 +191,7 @@ repository proxy through the constructor, and the field is <code>final</code>.</
   <span class="label">The check-then-act race</span>
   <p><code>existsByEmail</code> followed by <code>save</code> contains a race: two concurrent
   requests can both pass the check before either saves. The <code>UNIQUE</code> constraint from
-  the Lesson 02 migration is what actually prevents the duplicate; the check exists to produce a
+  the Lesson 02 migration is what prevents the duplicate; the check exists to produce a
   clear error in the normal case. Keep both. Application checks give good messages, database
   constraints give correctness, and only one of them survives concurrency.</p>
 </div>
@@ -233,19 +233,21 @@ record UserResponse(Long id, String email, String displayName) {
 <div class="note">
   <span class="label">Never serialise entities directly</span>
   <p>Returning <code>User</code> from a controller couples your public API to your database schema:
-  a column rename becomes a breaking API change, and any field you add leaks automatically —
+  a column rename becomes a breaking API change, and any field you add leaks automatically 
   including a password hash. The <code>UserResponse</code> record costs six lines and removes both
   problems. Reject entity-returning controllers in review.</p>
 </div>
 
 <h2><span class="num">06</span>Package by feature</h2>
 
-<p>Every class above lives in <code>com.example.demo.user</code>. Group by feature, not by layer.</p>
+<p>Every class above lives in <code>com.example.demo.user</code>, because the packages group by
+feature rather than by layer.</p>
 
-<p>The alternative — <code>controller/</code>, <code>service/</code>, <code>repository/</code>
-packages — looks organised and fails in practice. Every change to one feature then touches three
-packages, unrelated features sit adjacent, and nothing can be package-private because collaborators
-live elsewhere. Feature packages keep a change in one directory and let you hide internals.</p>
+<p>The alternative groups the classes by layer instead, into <code>controller/</code>,
+<code>service/</code> and <code>repository/</code> packages. That arrangement looks organised and
+works badly. Every change to one feature then touches three packages, unrelated features sit
+next to each other, and nothing can be package-private because its collaborators live elsewhere.
+Feature packages keep a change in one directory and let you hide the internals.</p>
 
 <hr>
 
@@ -289,7 +291,7 @@ live elsewhere. Feature packages keep a change in one directory and let you hide
 <h2><span class="num">08</span>Read this next</h2>
 
 <p><strong><a href="https://docs.spring.io/spring-data/jpa/reference/jpa/query-methods.html">Spring Data JPA: Query Methods</a></strong>
-— the full derivation grammar, including every supported keyword. Skim it once so you know what
+documents the full derivation grammar, including every supported keyword. Skim it once so you know what
 names are available, then return to it as reference.</p>
 
 <div class="note">

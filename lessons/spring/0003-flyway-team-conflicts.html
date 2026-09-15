@@ -32,16 +32,17 @@ after both reviews passed.</p>
 
 <h2><span class="num">01</span>Failure one: duplicate versions</h2>
 
-<p>Two engineers branch from <code>main</code> at version 6. Each adds <code>V7__</code>. Both pull
-requests pass review and merge. The next startup fails:</p>
+<p>Two engineers branch from <code>main</code> at version 6, and each of them adds a
+<code>V7__</code> migration. Both pull requests pass review and merge, and the next startup
+fails:</p>
 
 <pre><code>Found more than one migration with version 7
 Offenders:
 -&gt; .../db/migration/V7__add_orders_status.sql (SQL)
 -&gt; .../db/migration/V7__add_users_phone.sql (SQL)</code></pre>
 
-<p>Flyway refuses to guess an order. It applied nothing and corrupted nothing; the build
-simply stops until an engineer assigns the versions.</p>
+<p>Flyway refuses to guess an order, so it applied nothing and corrupted nothing, and the build
+stops until an engineer assigns the versions.</p>
 
 <div class="task">
   <span class="label">Resolve it</span>
@@ -70,8 +71,8 @@ Detected resolved migration not applied to database: 7</code></pre>
 <p>Flyway refuses to apply version 7 after version 8 because <code>spring.flyway.out-of-order</code>
 defaults to <code>false</code>. That default is correct, and here is the precise reason: if Flyway
 applied version 7 late on some databases and in sequence on others, the two databases ran the same
-migrations in different orders. Any migration whose result depends on preceding state — a backfill,
-a constraint added to data another migration wrote — then produces different results per
+migrations in different orders. Any migration whose result depends on preceding state, a backfill,
+a constraint added to data another migration wrote, then produces different results per
 environment.</p>
 
 <div class="note">
@@ -85,16 +86,16 @@ environment.</p>
 <h2><span class="num">03</span>Eliminate the collision instead</h2>
 
 <p>Both failures share one cause: sequential integers force every branch to guess the same next
-number. Three naming schemes exist. Choose by team size.</p>
+number. Three naming schemes are in common use, and the right one depends on the size of your team.</p>
 
 <ul>
-  <li><strong>Sequential integers</strong> (<code>V7__</code>) — readable, and adequate for one or
+  <li><strong>Sequential integers</strong> (<code>V7__</code>). Readable, and adequate for one or
   two engineers who merge frequently. Collides constantly beyond that.</li>
-  <li><strong>UTC timestamps</strong> (<code>V20260915103000__</code>) — collisions require two
+  <li><strong>UTC timestamps</strong> (<code>V20260915103000__</code>). Collisions require two
   engineers to create a migration in the same second. Ordering follows creation time rather than
   merge time, which remains correct because migrations that touch unrelated tables commute.</li>
   <li><strong>Timestamp plus ticket</strong> (<code>V20260915103000__PROJ_412_add_phone.sql</code>)
-  — adds traceability from schema change to the work that required it.</li>
+  adds traceability from schema change to the work that required it.</li>
 </ul>
 
 <pre><code>V20260915103000__add_users_phone.sql
@@ -112,7 +113,7 @@ V20260915141500__add_orders_status.sql
 <h2><span class="num">04</span>Enforce the rules in CI</h2>
 
 <p>Every rule in this lesson and in Lesson 02 is mechanically checkable. Check them in CI, because
-review will not catch a version collision — each pull request is individually correct.</p>
+review will not catch a version collision, each pull request is individually correct.</p>
 
 <h3>Check 1: migrations apply to an empty database</h3>
 
@@ -236,7 +237,7 @@ fi</code></pre>
 <h2><span class="num">07</span>Read this next</h2>
 
 <p><strong><a href="https://www.red-gate.com/hub/product-learning/flyway/how-to-fix-or-avoid-ignored-migrations-in-flyway">How to Fix or Avoid 'Ignored' Migrations in Flyway</a></strong>
-— Redgate's treatment of out-of-order arrivals, including the <code>ignoreMigrationPatterns</code>
+covers Redgate's treatment of out-of-order arrivals, including the <code>ignoreMigrationPatterns</code>
 settings this lesson deliberately avoids.</p>
 
 <p>Continue with <a href="0004-flyway-development-workflow.html">Lesson 04</a>, which covers the

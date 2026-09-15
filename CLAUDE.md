@@ -73,54 +73,67 @@ a link — it is read in the repository, not on the site.
 
 ## Writing style for lessons
 
-Every lesson and reference document follows these rules. They are not stylistic
-preferences; the learner set them explicitly.
+The base rules come from the **stop-slop** skill in `.claude/skills/stop-slop/`,
+a verbatim copy of <https://github.com/hardikpandya/stop-slop>. Read
+`SKILL.md` and its three reference files before writing prose. They cover banned
+phrases, structural cliches, false agency, passive voice and rhythm.
 
-- **Active voice.** Name the actor. Write "Flyway applies the migration", not
-  "the migration is applied". Scan drafts for "is/are/was/were + past participle"
-  and rewrite each occurrence.
-- **No ambiguous phrasing.** Replace "this", "that" and "it" with the noun they
-  refer to whenever more than one referent is possible. State defaults, versions
-  and artifact names exactly rather than describing them approximately.
-- **No casual metaphors.** Drop analogies, jokes and figurative comparisons.
-  Describe the mechanism directly. "Three annotations in a trench coat" is
-  prohibited; "@SpringBootApplication combines three annotations" is correct.
-- **Direct and authoritative.** Give the instruction, then the reason. Write
-  "Add the starter" rather than "you might want to add the starter". Make
-  recommendations as recommendations, and mark genuine uncertainty as uncertainty.
-- **Plain words, ordinary sentences.** Direct does not mean punchy. Write
-  complete sentences of ordinary length, joined by the words that carry the
-  reasoning: because, so, which means, rather than. Prefer the plain word over
-  the vivid one — "breaks" over "dies", "slower" over "costly", "matters most"
-  over "highest-leverage".
+`tools/stop-slop-check.py` enforces the machine-checkable parts across
+`lessons/`, `reference/` and `index.html`. Run it before every commit:
 
-  Specifically, avoid:
-  - **Sentence fragments used for emphasis.** "No waits. No sleeps. No CSS
-    selectors." Write "There are no explicit waits, no sleeps, and no CSS
-    selectors" instead.
-  - **One-line paragraphs that pronounce.** "Spend them deliberately." Explain
-    what to do and why in a normal sentence.
-  - **Dramatic framing.** "Most suites die the same way" and "that clause is the
-    whole difficulty" both overstate. Describe what happens and why.
-  - **Build-up before the point.** Say the thing, then explain it. Do not
-    withhold it for effect.
+```
+python3 tools/stop-slop-check.py --verbose
+```
 
-  A useful check: count prose sentences of six words or fewer. Above roughly ten
-  percent of sentences, the writing has become clipped. The Playwright lessons
-  sit near five percent and read the way the learner asked for.
-- **Technical precision over readability flourishes.** Quote exact error strings,
-  exact property names and exact defaults. Verify each against the source — a jar,
-  a POM, or official documentation — before publishing.
+It exits non-zero on any violation. The whole workspace passes as of this
+writing.
 
-Quiz options must all carry the **same number of words**, and character counts as
-close as practical, so that formatting leaks no clue about which answer is
-correct. Vary which index holds the correct answer across the questions in a
-lesson; three questions all answered by the first option is its own tell.
+### Carve-outs for technical writing
 
-Lesson 01 predates these rules and still uses the older conversational voice.
-The Spring lessons predate the plain-words rule and read more clipped than the
-Playwright track. Rewrite them when convenient; do not write anything new in
-either voice.
+stop-slop targets essays. Four of its rules damage technical documentation, so
+this workspace departs from them deliberately. Do not "fix" these.
+
+- **Adverbs.** stop-slop says remove all of them. Keep the ones that carry
+  technical meaning: `CREATE INDEX CONCURRENTLY` is a SQL keyword, and
+  "Spring injects that constructor automatically", "fails silently" and "runs
+  transactionally" each state a fact that costs a clause to say otherwise. The
+  checker still bans the empty ones: really, just, simply, actually, genuinely,
+  honestly, literally, truly, deeply, fundamentally.
+- **"Never" and "always".** stop-slop calls these lazy extremes. "Never modify a
+  migration that has run elsewhere" is a precise absolute, not false authority,
+  so `never` stays allowed. `everyone`, `everybody`, `nobody` and `always` remain
+  banned, because they hide the actor.
+- **Wh- sentence openers.** stop-slop bans them. Quiz stems must be questions
+  ("What does Flyway store in the history table?"), so the checker does not test
+  for this. Avoid Wh- openers in body prose.
+- **Three-item lists.** stop-slop prefers two. A technical enumeration reports
+  a fact: Spring Boot has three layers and Flyway has three per-database module
+  naming patterns, so list however many exist. The rule applies to rhetorical
+  triads in prose, not to enumerations.
+
+Reference sheets are exempt from the sentence-rhythm checks. A cheat sheet is
+telegraphic on purpose.
+
+### Rhythm
+
+The defect to avoid is **stacked** short sentences, which read as manufactured
+emphasis: "No waits. No sleeps. No CSS selectors." The checker fails any run of
+two or more consecutive sentences of six words or fewer, excluding lead-ins that
+end in a colon.
+
+A single short imperative is fine and often correct. "Use constructors." is the
+directness the learner asked for.
+
+The checker also reports a short-sentence ratio per file. It does not fail on
+that number, because ordinary imperatives push it up without making the prose
+clipped. Treat it as drift detection. The Playwright lessons sit near five
+percent and the Spring lessons between eight and twenty-three.
+
+### Em dashes
+
+Removed from the workspace entirely, per stop-slop. Use a comma for an aside, a
+colon before a definition or a list, and a full stop between two complete
+thoughts.
 
 ## The teach skill
 

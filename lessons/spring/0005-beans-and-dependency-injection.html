@@ -25,9 +25,9 @@
 explaining the mechanism: you stop calling your code, and Spring calls it instead. This lesson
 supplies the mechanism.</p>
 
-<p>Every Spring concept you meet later — transactions, security, caching, the repositories in
-<a href="0006-layers-and-spring-data.html">Lesson 06</a> — depends on Spring owning the object
-graph. Learn the exchange once here.</p>
+<p>Transactions, security, caching and the repositories in
+<a href="0006-layers-and-spring-data.html">Lesson 06</a> all depend on Spring owning the object
+graph, so this exchange is worth learning once, here.</p>
 
 <h2><span class="num">01</span>What a bean is</h2>
 
@@ -82,7 +82,7 @@ same object.</p>
 
 <p>Spring supplies dependencies through constructors, setters, or fields. Use constructors.</p>
 
-<h3>Field injection — reject this</h3>
+<h3>Field injection, reject this</h3>
 
 <div class="filename">Do not write this</div>
 <pre><code>@RestController
@@ -97,7 +97,7 @@ public class GreetingController {
     }
 }</code></pre>
 
-<h3>Constructor injection — use this</h3>
+<h3>Constructor injection, use this</h3>
 
 <div class="filename">src/main/java/com/example/demo/GreetingController.java</div>
 <pre><code>@RestController
@@ -154,8 +154,8 @@ annotation. Spring injects that constructor automatically.</p>
   <span class="label">In review</span>
   <p>Reject <code>@Autowired</code> on a field. The counter-argument you will hear is that
   constructors are verbose; the answer is that the verbosity is the diagnostic. Setter injection
-  has one legitimate use — a genuinely optional dependency — and you will encounter that case
-  rarely enough to treat each instance individually.</p>
+  has one legitimate use, an optional dependency, and that case comes up rarely enough to
+  treat each instance on its own merits.</p>
 </div>
 
 <h2><span class="num">04</span>When Spring cannot decide</h2>
@@ -179,8 +179,8 @@ that should be consumed</code></pre>
   <li><strong><code>@Qualifier("englishGreetingService")</code></strong> on the constructor
   parameter. Explicit at the point of use, which is where the next reader looks.</li>
   <li><strong><code>@Primary</code></strong> on one bean definition, marking it the default. Use
-  this when one implementation genuinely is the normal choice and the other is an exception.</li>
-  <li><strong>Accept a <code>List&lt;GreetingService&gt;</code></strong> when you actually want every
+  this when one implementation is the normal choice and the other is an exception.</li>
+  <li><strong>Accept a <code>List&lt;GreetingService&gt;</code></strong> when you want every
   implementation, which is the correct shape for strategies and validators.</li>
 </ul>
 
@@ -258,7 +258,7 @@ public class ClockConfiguration {
 <h2><span class="num">07</span>Read this next</h2>
 
 <p><strong><a href="https://docs.spring.io/spring-framework/reference/core/beans.html">The IoC Container</a></strong>
-— the Spring Framework reference chapter on beans. Read sections 1.1 to 1.4 and stop; the rest
+is the Spring Framework reference chapter on beans. Read sections 1.1 to 1.4 and stop; the rest
 covers cases you will not meet for months.</p>
 
 <p>Continue to <a href="0006-layers-and-spring-data.html">Lesson 06</a>, which applies this to the

@@ -89,7 +89,7 @@
     <thead><tr><th>Path</th><th>Contains</th></tr></thead>
     <tbody>
       <tr><td><code>pom.xml</code></td><td>The build. Read this first in any unfamiliar project.</td></tr>
-      <tr><td><code>mvnw / mvnw.cmd</code></td><td>Maven wrapper. Always prefer over a system mvn.</td></tr>
+      <tr><td><code>mvnw / mvnw.cmd</code></td><td>Maven wrapper. Prefer it over a system mvn.</td></tr>
       <tr><td><code>src/main/java</code></td><td>Application code. Main class at the top package.</td></tr>
       <tr><td><code>src/main/resources</code></td><td>application.properties, static files, templates.</td></tr>
       <tr><td><code>src/test/java</code></td><td>Tests, mirroring the main package structure.</td></tr>
@@ -101,9 +101,9 @@
 
   <h2>Versions that matter</h2>
   <ul>
-    <li><strong>Spring Boot 4.1.1</strong> — current stable line as of September 2026.</li>
+    <li><strong>Spring Boot 4.1.1</strong>. Current stable line as of September 2026.</li>
     <li><strong>Java 17 minimum</strong> for Boot 4, tested through Java 26. Prefer an LTS: 17, 21 or 25.</li>
-    <li><strong>Maven 3.9.0+</strong> — the plugin's hard floor is 3.6.3, but the 3.8 line is end-of-life.</li>
+    <li><strong>Maven 3.9.0+</strong>. The plugin's hard floor is 3.6.3, but the 3.8 line is end-of-life.</li>
     <li><strong>Spring Framework 7</strong> underpins Boot 4; <strong>Jakarta EE 11</strong>, Servlet 6.1.</li>
   </ul>
 
@@ -112,7 +112,7 @@
     <li>Test slices moved to per-technology modules. <code>@WebMvcTest</code> and
         <code>@AutoConfigureMockMvc</code> are now in
         <code>org.springframework.boot.webmvc.test.autoconfigure</code>, from the
-        <code>spring-boot-webmvc-test</code> artifact — add it explicitly.</li>
+        <code>spring-boot-webmvc-test</code> artifact, add it explicitly.</li>
     <li><code>javax.*</code> became <code>jakarta.*</code> back in Boot 3. Any snippet with
         <code>javax.servlet</code> is pre-2022 and will not compile.</li>
     <li>Blog posts and generated code alike still use the old test imports. Trust the compiler.</li>
@@ -127,7 +127,7 @@
     <li><strong>Odd version errors?</strong> <code>./mvnw dependency:tree</code>, and look for a
         library appearing twice.</li>
     <li><strong>Import will not resolve?</strong> Suspect a version boundary, then check the
-        artifact is actually a dependency.</li>
+        artifact is on the dependency list.</li>
   </ol>
 
   <p class="next">
