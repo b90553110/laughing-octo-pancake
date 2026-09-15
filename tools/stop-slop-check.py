@@ -36,6 +36,22 @@ AGENCY = [r"\bthe data tells\b", r"\bthe decision emerges\b", r"\bthe culture sh
 EXTREMES = [r"\beveryone\b", r"\beverybody\b", r"\bnobody\b", r"\balways\b"]
 PASSIVE = re.compile(r"\b(is|are|was|were|be|been|being)\s+(?:\w+ly\s+)?(\w+ed|\w+en)\b", re.I)
 
+# Claims of importance that name no specific. Say what the thing does and let
+# the reader rank it. "This setting matters more than the others" tells the
+# reader nothing; "this setting records a trace on the first retry" does.
+INFLATION = [
+    r"matters more than", r"more than the others", r"the most important",
+    r"the single most", r"what matters most", r"the most valuable",
+    r"most consequential", r"highest[- ]leverage", r"the most useful",
+    r"the biggest", r"is what actually", r"the real \w+ is",
+    r"accounts for most", r"worth more than", r"more than any(?:thing| other)",
+    r"is everything", r"proves more than", r"deserves a closer look",
+    r"a large share", r"the difficult one", r"the hard part",
+    r"cannot be overstated", r"game[- ]changer", r"catastroph\w*",
+    r"\bdisaster\b", r"career[- ]limiting", r"the key to \w+",
+    r"your whole \w+", r"the whole point",
+]
+
 # Carve-outs recorded in CLAUDE.md. Technical writing needs these.
 ALLOW_ADVERB_CONTEXT = ["concurrently", "automatically", "explicitly", "implicitly",
                         "independently", "transactionally", "quietly", "silently"]
@@ -89,7 +105,7 @@ def check(path):
     if adv: found["adverb"] = sorted(set(adv))
 
     for name, pats in (("binary-contrast", BINARY), ("false-agency", AGENCY),
-                       ("lazy-extreme", EXTREMES)):
+                       ("lazy-extreme", EXTREMES), ("inflation", INFLATION)):
         hits = [m.group(0) for p in pats for m in re.finditer(p, low)]
         if hits: found[name] = sorted(set(hits))
 

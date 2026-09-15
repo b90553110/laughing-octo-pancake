@@ -111,3 +111,19 @@ Preferences and observations that shape how lessons get written.
   for. The real defect is stacked short sentences, so the checker now fails on
   runs of two or more and reports the ratio as information only.
 
+## Session 7 (15 Sep 2026)
+
+- The learner flagged a third style fault: inflating importance. Two examples,
+  both mine: "Section 04 explains why this setting matters more than the others"
+  claims rank without saying anything, and "quietly reduces your whole CI run to
+  a single test" dresses up a plain fact with intensifiers.
+- Scanned the workspace rather than fixing only the two, and found thirteen. Most
+  sat in the Playwright track and Spring lesson 01, which are the files I wrote
+  most recently, so the habit is current rather than historic.
+- Added an `inflation` category to the checker with a before-and-after table in
+  `CLAUDE.md`. Literal scope statements stay: "starts the whole application
+  context" describes what `@SpringBootTest` does.
+- Pattern across sessions 5, 6 and 7: my drafts reach for emphasis when the plain
+  statement would do. Directness, plain words and no inflation are three faces of
+  the same correction.
+

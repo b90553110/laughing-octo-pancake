@@ -117,8 +117,8 @@ review will not catch a version collision, each pull request is individually cor
 
 <h3>Check 1: migrations apply to an empty database</h3>
 
-<p>Run the full sequence against a clean database on every pull request. This single check proves
-more than the other two combined, because it executes the SQL rather than inspecting filenames.</p>
+<p>Run the full sequence against a clean database on every pull request. This check runs the SQL
+rather than inspecting filenames, so it catches errors the other two cannot see.</p>
 
 <div class="filename">CI job, abbreviated</div>
 <pre><code># Apply every migration to an empty database.

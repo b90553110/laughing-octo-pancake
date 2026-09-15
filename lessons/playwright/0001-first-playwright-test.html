@@ -25,7 +25,7 @@
 <p>This track covers end-to-end testing, which has little in common with the Spring track apart
 from a shared concern: a test should fail when the application breaks, and at no other time.</p>
 
-<p>That second part is the difficult one. When an end-to-end suite fails for reasons unrelated to
+<p>When an end-to-end suite fails for reasons unrelated to
 the application, people stop trusting the results, then stop reading them, and eventually delete
 the suite. Two things determine whether that happens to you: how the test waits for the page, and
 how it finds elements. This lesson covers waiting, and lesson 02 covers finding elements.</p>
@@ -104,10 +104,10 @@ export default defineConfig({
   rather than repeating the host in every test. If you set it from an environment variable, the
   same suite can run against a deployed environment without any other change.</li>
   <li><strong><code>trace: 'on-first-retry'</code></strong> controls what Playwright records when a
-  test fails. Section 04 explains why this setting matters more than the others.</li>
+  test fails. Section 04 covers what a trace contains and why this mode costs nothing while tests
+  pass.</li>
   <li><strong><code>forbidOnly</code></strong> turns a <code>test.only</code> that reaches CI into
-  a build failure. Without it, a <code>test.only</code> left in by accident quietly reduces your
-  whole CI run to a single test.</li>
+  a build failure. Without it, CI runs that one test and skips the rest.</li>
 </ul>
 
 <h2><span class="num">03</span>Write the test</h2>
@@ -161,9 +161,8 @@ restarting Angular.</p>
 
 <p>When a test fails in CI, open its trace. A trace records a snapshot of the page before and after
 every action, along with the network requests, the console output, and the line of test code
-responsible for each step. This is what turns "it fails in CI but passes locally" from a guess into
-something you can look at directly, because you can see the state of the page at the moment the
-click went to the wrong place.</p>
+responsible for each step. You can see the state of the page at the moment the click went to the wrong place, which
+answers "it fails in CI but passes locally" without guessing.</p>
 
 <div class="note">
   <span class="label">Why on-first-retry rather than every run</span>
@@ -220,8 +219,8 @@ project, so it is worth being selective about what you cover with them.</p>
     <button type="button">The source code of every page you visited</button>
     <button type="button">A video recording with no other captured data</button>
     <p class="why" hidden>A trace holds a snapshot of the page before and after each action,
-    together with network activity, console output, and the line of test code for each step. It is
-    the most useful tool available when a test fails only in CI.</p>
+    together with network activity, console output, and the line of test code for each step. Open it
+    when a test fails only in CI.</p>
   </div>
 
   <div class="q" data-answer="2">

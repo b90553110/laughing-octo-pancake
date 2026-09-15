@@ -129,6 +129,30 @@ that number, because ordinary imperatives push it up without making the prose
 clipped. Treat it as drift detection. The Playwright lessons sit near five
 percent and the Spring lessons between eight and twenty-three.
 
+### Do not inflate
+
+State what a thing does and let the reader judge its importance. Ranking claims
+carry no information and read as filler.
+
+| Instead of | Write |
+|---|---|
+| "Section 04 explains why this setting matters more than the others." | "Section 04 covers what a trace contains." |
+| "the most useful tool available when a test fails in CI" | "Open it when a test fails only in CI." |
+| "This is the most consequential decision in the track." | Cut it. The preceding sentence already says what the decision controls. |
+| "responsible for a large share of flaky tests" | "A test written this way passes or fails depending on how quickly the page renders." |
+| "That inversion accounts for most of the framework." | "Spring is built around that inversion, and its other features assume it." |
+
+The same applies to consequences. Describe what happens, without intensifiers:
+
+| Instead of | Write |
+|---|---|
+| "quietly reduces your whole CI run to a single test" | "CI runs that one test and skips the rest." |
+| "This single check proves more than the other two combined." | "This check runs the SQL rather than inspecting filenames, so it catches errors the other two cannot see." |
+
+`tools/stop-slop-check.py` fails on the `inflation` patterns. A literal scope
+statement is not inflation: "starts the whole application context" describes what
+`@SpringBootTest` does, so it stays.
+
 ### Em dashes
 
 Removed from the workspace entirely, per stop-slop. Use a comma for an aside, a

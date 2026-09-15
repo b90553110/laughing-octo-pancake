@@ -12,7 +12,7 @@
 <header class="masthead wrap">
   <p class="crumb"><a href="../../index.html">Workspace</a> · Playwright track · Lesson 02</p>
   <h1>Locators and waiting</h1>
-  <p class="standfirst">How a test finds an element determines whether it still works after someone refactors the application. This is the most consequential decision in the track.</p>
+  <p class="standfirst">How a test finds an element determines whether it still works after someone refactors the application.</p>
   <p class="meta-line">
     ~20 minutes · Playwright 1.63.0 · Angular 22 · Angular Material<br>
     I did not execute the code in this lesson. Please report anything that behaves differently.
@@ -135,11 +135,10 @@ await expect(page).toHaveURL(/\/users\/\d+/);
 // NOT web-first: evaluates once, no retry. A race condition.
 expect(await page.getByRole(&#x27;alert&#x27;).isVisible()).toBe(true);</code></pre>
 
-<p>The last line in that example deserves a closer look, because it behaves differently from the
-ones above it. Calling <code>await locator.isVisible()</code> and then asserting on the boolean
+<p>The last line behaves differently from the ones above it. Calling <code>await locator.isVisible()</code> and then asserting on the boolean
 result checks the page only once, so nothing retries, and the assertion runs against whatever the
-page happened to contain at that instant. This pattern is responsible for a large share of flaky
-Playwright tests.</p>
+page happened to contain at that instant. A test written this way passes or fails depending on how
+quickly the page renders.</p>
 
 <div class="note">
   <span class="label">The distinction worth remembering</span>
