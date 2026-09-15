@@ -75,7 +75,7 @@
     <thead><tr><th>Annotation / type</th><th>Use</th></tr></thead>
     <tbody>
       <tr><td><code>@SpringBootTest</code></td><td>Start the whole application context. Thorough, slower.</td></tr>
-      <tr><td><code>@WebMvcTest(X.class)</code></td><td>Web layer only, one controller. Fast; collaborators are mocked.</td></tr>
+      <tr><td><code>@WebMvcTest(X.class)</code></td><td>Web layer only, one controller. Fast; Spring mocks the collaborators.</td></tr>
       <tr><td><code>@AutoConfigureMockMvc</code></td><td>Add MockMvc to a @SpringBootTest.</td></tr>
       <tr><td><code>MockMvc</code></td><td>Drive the full request path without opening a socket.</td></tr>
       <tr><td><code>@MockitoBean</code></td><td>Replace a bean with a mock for this test context.</td></tr>
@@ -131,7 +131,7 @@
   </ol>
 
   <p class="next">
-    <a href="../lessons/0001-spring-boot-maven-first-service.html">Lesson 01: Your first Spring Boot service</a>
+    <a href="../lessons/spring/0001-spring-boot-maven-first-service.html">Lesson 01: Your first Spring Boot service</a>
     · <a href="../index.html">workspace</a>
   </p>
 

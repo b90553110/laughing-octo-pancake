@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Reference · Playwright</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎭</text></svg>">
+  <link rel="stylesheet" href="../assets/lesson.css">
+</head>
+<body>
+
+<header class="masthead sheet">
+  <p class="crumb"><a href="../index.html">Workspace</a> · Reference</p>
+  <h1>Playwright</h1>
+  <p class="standfirst">Locator priority, assertion forms, commands and the rules that prevent flaky tests.</p>
+  <p class="meta-line">Playwright 1.63.0 · Angular 22 · TypeScript · September 2026</p>
+</header>
+
+<main class="sheet">
+
+  <h2>The two rules</h2>
+  <div class="note">
+    <span class="label">Rules</span>
+    <p>Locate elements by what the user perceives, never by DOM structure.<br>
+    Express every wait as a retrying assertion, never as a sleep.</p>
+  </div>
+
+  <h2>Locator priority — stop at the first that fits</h2>
+  <div class="scroll-x">
+  <table>
+    <thead><tr><th>Locator</th><th>When</th></tr></thead>
+    <tbody>
+      <tr><td><code>getByRole(&#x27;button&#x27;, { name: &#x27;Save&#x27; })</code></td><td>Role plus accessible name. Your default choice.</td></tr>
+      <tr><td><code>getByLabel(&#x27;Email&#x27;)</code></td><td>Form fields, via the associated label.</td></tr>
+      <tr><td><code>getByPlaceholder(&#x27;Search&#x27;)</code></td><td>Inputs with no label. Fix the label instead where you can.</td></tr>
+      <tr><td><code>getByText(&#x27;No results&#x27;)</code></td><td>Non-interactive text content.</td></tr>
+      <tr><td><code>getByTestId(&#x27;user-row&#x27;)</code></td><td>Deliberate escape hatch. Add the attribute yourself.</td></tr>
+      <tr><td><code>locator(&#x27;css=...&#x27;)</code></td><td>Last resort. Record why in a comment.</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <h2>Narrowing</h2>
+  <div class="scroll-x">
+  <table>
+    <thead><tr><th>Form</th><th>Effect</th></tr></thead>
+    <tbody>
+      <tr><td><code>locator.filter({ hasText: &#x27;Ada&#x27; })</code></td><td>Narrow to elements containing text.</td></tr>
+      <tr><td><code>locator.filter({ has: other })</code></td><td>Narrow to elements containing another locator.</td></tr>
+      <tr><td><code>parent.getByRole(&#x27;button&#x27;)</code></td><td>Scope inside a row, dialog or list item.</td></tr>
+      <tr><td><code>locator.first() / .nth(2)</code></td><td>Only when position is the actual subject.</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <h2>Assertions</h2>
+  <div class="scroll-x">
+  <table>
+    <thead><tr><th>Form</th><th>Retry behaviour</th></tr></thead>
+    <tbody>
+      <tr><td><code>await expect(loc).toBeVisible()</code></td><td>Retries. Use this form.</td></tr>
+      <tr><td><code>await expect(loc).toHaveText(&#x27;x&#x27;)</code></td><td>Retries until the text matches.</td></tr>
+      <tr><td><code>await expect(loc).toHaveCount(3)</code></td><td>Retries until the count matches.</td></tr>
+      <tr><td><code>await expect(page).toHaveURL(/re/)</code></td><td>Retries until navigation completes.</td></tr>
+      <tr><td><code>expect(await loc.isVisible())</code></td><td>Does NOT retry. A race. Avoid.</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <h2>Commands</h2>
+  <div class="scroll-x">
+  <table>
+    <thead><tr><th>Command</th><th>Effect</th></tr></thead>
+    <tbody>
+      <tr><td><code>npx playwright test</code></td><td>Every test, headless, in parallel.</td></tr>
+      <tr><td><code>npx playwright test --ui</code></td><td>Interactive runner. Use while writing.</td></tr>
+      <tr><td><code>npx playwright test --headed</code></td><td>Watch a real browser.</td></tr>
+      <tr><td><code>npx playwright test --debug</code></td><td>Step through with the inspector.</td></tr>
+      <tr><td><code>npx playwright show-report</code></td><td>Open the last HTML report.</td></tr>
+      <tr><td><code>npx playwright codegen url</code></td><td>Record actions into code.</td></tr>
+      <tr><td><code>npx playwright install</code></td><td>Re-download browsers after an upgrade.</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <h2>Config settings that earn their place</h2>
+  <div class="scroll-x">
+  <table>
+    <thead><tr><th>Setting</th><th>Purpose</th></tr></thead>
+    <tbody>
+      <tr><td><code>webServer</code></td><td>Starts your app before tests, stops it after.</td></tr>
+      <tr><td><code>baseURL</code></td><td>Lets tests use page.goto(&#x27;/path&#x27;).</td></tr>
+      <tr><td><code>trace: &#x27;on-first-retry&#x27;</code></td><td>Full diagnostic on failure, no cost when passing.</td></tr>
+      <tr><td><code>forbidOnly: !!process.env.CI</code></td><td>Turns a stray test.only into a build failure.</td></tr>
+      <tr><td><code>retries: process.env.CI ? 2 : 0</code></td><td>Retry in CI only; a local retry hides flakiness.</td></tr>
+      <tr><td><code>projects</code></td><td>Browsers and device profiles to run against.</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <h2>Rules</h2>
+  <div class="scroll-x">
+  <table>
+    <thead><tr><th>Rule</th><th>Reason</th></tr></thead>
+    <tbody>
+      <tr><td><code>Never call waitForTimeout</code></td><td>A fixed sleep is too short, too long, or both.</td></tr>
+      <tr><td><code>Put await before expect</code></td><td>await expect(loc) retries; expect(await loc) does not.</td></tr>
+      <tr><td><code>Never target .mat-mdc-* classes</code></td><td>Angular Material renames them between versions.</td></tr>
+      <tr><td><code>Fix strict mode by scoping</code></td><td>.first() picks arbitrarily and eventually picks wrong.</td></tr>
+      <tr><td><code>Test few journeys, deeply</code></td><td>Push component behaviour down to Angular&#x27;s own tests.</td></tr>
+      <tr><td><code>Do not assert on styling</code></td><td>It changes for reasons unrelated to correctness.</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+
+  <h2>Angular Material roles</h2>
+  <div class="scroll-x">
+  <table>
+    <thead><tr><th>Component</th><th>Role to target</th></tr></thead>
+    <tbody>
+      <tr><td>button, mat-raised-button</td><td><code>getByRole('button', { name })</code></td></tr>
+      <tr><td>mat-select</td><td><code>getByRole('combobox')</code>, then <code>'option'</code></td></tr>
+      <tr><td>mat-dialog</td><td><code>getByRole('dialog', { name })</code></td></tr>
+      <tr><td>mat-checkbox</td><td><code>getByRole('checkbox', { name })</code></td></tr>
+      <tr><td>mat-table</td><td><code>getByRole('row')</code>, then <code>'cell'</code></td></tr>
+      <tr><td>mat-tab-group</td><td><code>getByRole('tab', { name })</code></td></tr>
+      <tr><td>mat-snack-bar</td><td><code>getByRole('alert')</code></td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <h2>Diagnosing a failure</h2>
+  <ol>
+    <li><strong>Open the trace.</strong> <code>npx playwright show-report</code>, then the trace on
+        the failed test. Read the DOM snapshot at the failing step.</li>
+    <li><strong>Timeout waiting for an element?</strong> The locator is wrong, or the element never
+        rendered. The snapshot distinguishes the two.</li>
+    <li><strong>Strict mode violation?</strong> Scope the locator inside its container.</li>
+    <li><strong>Passes locally, fails in CI?</strong> Suspect test data or leaked state between
+        tests before suspecting timing.</li>
+    <li><strong>Fails only when run with others?</strong> Tests share state. Each test must create
+        the data it needs.</li>
+  </ol>
+
+  <p class="next">
+    <a href="../lessons/playwright/0001-first-playwright-test.html">Lesson 01</a> ·
+    <a href="../lessons/playwright/0002-locators-and-waiting.html">Lesson 02</a> ·
+    <a href="../index.html">workspace</a>
+  </p>
+
+</main>
+</body>
+</html>

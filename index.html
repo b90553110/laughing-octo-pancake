@@ -17,69 +17,94 @@
       one tap away on any device.
     </p>
     <nav class="actions">
-      <a class="button primary" href="#lessons">Lessons</a>
+      <a class="button primary" href="#spring">Spring track</a>
+      <a class="button" href="#playwright">Playwright track</a>
       <a class="button" href="#reference">Reference</a>
       <a class="button" href="#how">How this works</a>
     </nav>
   </header>
 
   <main>
-    <section id="mission">
-      <h2>Mission</h2>
-      <p>
-        <strong>Spring Boot, with Maven</strong> — taught in the register of a tech lead:
-        not just how to make it work, but why it is built this way and what matters in
-        review. Starting from solid Java and no Spring.
-      </p>
+    <section id="spring">
+      <h2>Spring track</h2>
       <p class="section-note">
-        The mission is still provisional. It sharpens once there is a concrete thing to
-        build — see <a href="MISSION.md">MISSION.md</a>.
+        Spring Boot with Maven, taught as a tech lead would: the reasons and trade-offs,
+        not only the steps. Read in order.
       </p>
-    </section>
-
-    <section id="lessons">
-      <h2>Lessons</h2>
-      <p class="section-note">
-        Self-contained lessons, newest last. Each one teaches a single tightly-scoped
-        thing and takes only a few minutes.
-      </p>
-      <!-- Add one <li> per lesson as it is created. Keep newest last. -->
       <ol class="list" id="lesson-list">
         <li>
-          <a href="lessons/0001-spring-boot-maven-first-service.html">Your first Spring Boot service</a>
-          <span class="meta">Lesson 1 · 8 Sep 2026 · ~20 min · one HTTP endpoint, built and tested</span>
+          <a href="lessons/spring/0001-spring-boot-maven-first-service.html">Your first Spring Boot service</a>
+          <span class="meta">Lesson 1 · ~20 min · one HTTP endpoint, built and tested</span>
         </li>
         <li>
-          <a href="lessons/0002-flyway-database-migrations.html">Database migrations with Flyway</a>
-          <span class="meta">Lesson 2 · 10 Sep 2026 · ~20 min · versioning your schema, and the one rule</span>
+          <a href="lessons/spring/0002-flyway-database-migrations.html">Database migrations with Flyway</a>
+          <span class="meta">Lesson 2 · ~20 min · versioning your schema, and the one rule</span>
         </li>
         <li>
-          <a href="lessons/0003-flyway-team-conflicts.html">Flyway conflicts across a team</a>
-          <span class="meta">Lesson 3 · 15 Sep 2026 · ~20 min · duplicate versions, late arrivals, CI enforcement</span>
+          <a href="lessons/spring/0003-flyway-team-conflicts.html">Flyway conflicts across a team</a>
+          <span class="meta">Lesson 3 · ~20 min · duplicate versions, late arrivals, CI enforcement</span>
         </li>
         <li>
-          <a href="lessons/0004-flyway-development-workflow.html">Iterating on migrations in development</a>
-          <span class="meta">Lesson 4 · 15 Sep 2026 · ~20 min · rebuilds, squashing, seed data, shared databases</span>
+          <a href="lessons/spring/0004-flyway-development-workflow.html">Iterating on migrations in development</a>
+          <span class="meta">Lesson 4 · ~20 min · rebuilds, squashing, seed data, shared databases</span>
+        </li>
+        <li>
+          <a href="lessons/spring/0005-beans-and-dependency-injection.html">Beans and dependency injection</a>
+          <span class="meta">Lesson 5 · ~20 min · the ApplicationContext, and why constructors win</span>
+        </li>
+        <li>
+          <a href="lessons/spring/0006-layers-and-spring-data.html">Controller, service, repository</a>
+          <span class="meta">Lesson 6 · ~25 min · Spring Data JPA over the users table</span>
         </li>
       </ol>
       <p class="empty">No lessons yet.</p>
+      <p class="section-note">
+        Queued: transactions and the proxy self-invocation trap · testing with Testcontainers ·
+        errors and validation · configuration and profiles · auto-configuration internals ·
+        Actuator and production readiness.
+      </p>
+    </section>
+
+    <section id="playwright">
+      <h2>Playwright track</h2>
+      <p class="section-note">
+        End-to-end tests for an Angular application, in TypeScript. Every decision in this
+        track optimises against flaky tests.
+      </p>
+      <ol class="list" id="playwright-list">
+        <li>
+          <a href="lessons/playwright/0001-first-playwright-test.html">Your first Playwright test</a>
+          <span class="meta">Lesson 1 · ~20 min · install, configure, run, read a trace</span>
+        </li>
+        <li>
+          <a href="lessons/playwright/0002-locators-and-waiting.html">Locators and waiting</a>
+          <span class="meta">Lesson 2 · ~20 min · role-based locators, strict mode, web-first assertions</span>
+        </li>
+      </ol>
+      <p class="empty">No lessons yet.</p>
+      <p class="section-note">
+        Queued: reusing authentication state · network interception for deterministic data ·
+        the page object debate · running the suite in CI · visual comparison.
+      </p>
     </section>
 
     <section id="reference">
       <h2>Reference</h2>
       <p class="section-note">
-        Compressed essentials worth returning to — cheat sheets, glossaries,
-        sequences. Built to print well.
+        Compressed essentials worth returning to. Built to print.
       </p>
-      <!-- Add one <li> per reference document in ./reference/. -->
       <ul class="list" id="reference-list">
         <li>
           <a href="reference/maven-spring-cheatsheet.html">Maven &amp; Spring Boot cheat sheet</a>
-          <span class="meta">Commands, pom.xml anatomy, annotations, Boot 3 → 4 gotchas · prints on two sides</span>
+          <span class="meta">Commands, pom.xml anatomy, annotations, Boot 3 → 4 gotchas</span>
         </li>
         <li>
           <a href="reference/flyway-cheatsheet.html">Flyway cheat sheet</a>
-          <span class="meta">File naming, properties, database modules, errors decoded, review checklist</span>
+          <span class="meta">Practices, file naming, properties, database modules, errors decoded</span>
+        </li>
+        <li>
+          <a href="reference/playwright-cheatsheet.html">Playwright cheat sheet</a>
+          <span class="meta">Locator priority, assertion forms, Angular Material roles, diagnosis</span>
         </li>
       </ul>
       <p class="empty">No reference documents yet.</p>
@@ -93,11 +118,10 @@
         opened on this repo — including from a phone — picks it up automatically.
       </p>
       <p>Ask for a lesson with:</p>
-      <pre><code>/teach how dependency injection works in Spring</code></pre>
+      <pre><code>/teach how Spring transactions actually work</code></pre>
       <p>
-        Claude writes the lesson into <code>lessons/</code>, links it from this page,
-        and pushes. GitHub Pages redeploys within a minute or so, and the new lesson
-        is listed above.
+        Claude writes the lesson into the right track under <code>lessons/</code>, links it
+        from this page, and pushes. GitHub Pages redeploys within a minute or so.
       </p>
     </section>
   </main>

@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Spring 5 · Beans and dependency injection</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🫘</text></svg>">
+  <link rel="stylesheet" href="../../assets/lesson.css">
+</head>
+<body>
+
+<header class="masthead wrap">
+  <p class="crumb"><a href="../../index.html">Workspace</a> · Spring track · Lesson 05</p>
+  <h1>Beans and dependency injection</h1>
+  <p class="standfirst">Spring constructs your objects and hands them their dependencies. Understand that exchange and the rest of the framework follows.</p>
+  <p class="meta-line">
+    ~20 minutes · Spring Boot 4.1.1 · Java 21<br>
+    I did not execute this code. Report any output that differs on your machine.
+  </p>
+</header>
+
+<main class="wrap">
+
+<p><a href="0001-spring-boot-maven-first-service.html">Lesson 01</a> stated the inversion without
+explaining the mechanism: you stop calling your code, and Spring calls it instead. This lesson
+supplies the mechanism.</p>
+
+<p>Every Spring concept you meet later — transactions, security, caching, the repositories in
+<a href="0006-layers-and-spring-data.html">Lesson 06</a> — depends on Spring owning the object
+graph. Learn the exchange once here.</p>
+
+<h2><span class="num">01</span>What a bean is</h2>
+
+<p>A <strong>bean</strong> is an object that Spring constructs, holds, and supplies to whatever
+needs it. Spring stores every bean in the <strong>ApplicationContext</strong>, a registry it builds
+at startup and keeps for the lifetime of the process.</p>
+
+<p>Mark a class as a bean with a stereotype annotation:</p>
+
+<div class="filename">src/main/java/com/example/demo/GreetingService.java</div>
+<pre><code>package com.example.demo;
+
+import org.springframework.stereotype.Service;
+
+@Service
+public class GreetingService {
+
+    public String greet() {
+        return &quot;Hello from a bean&quot;;
+    }
+}</code></pre>
+
+<p>At startup, component scanning finds this class, calls its constructor once, and registers the
+result under the name <code>greetingService</code>. Your code never calls
+<code>new GreetingService()</code>.</p>
+
+<div class="note plain">
+  <span class="label">The stereotype annotations</span>
+  <p><code>@Component</code> registers a bean. <code>@Service</code>, <code>@Repository</code> and
+  <code>@Controller</code> each register a bean and state its role. Spring treats
+  <code>@Service</code> and <code>@Component</code> identically at runtime; the difference
+  documents intent for the next reader. <code>@Repository</code> differs materially: Spring
+  translates persistence exceptions thrown from classes carrying it.</p>
+</div>
+
+<h2><span class="num">02</span>Singleton by default</h2>
+
+<p>Spring creates one instance per bean definition and shares that instance across the whole
+application. Two controllers that declare a <code>GreetingService</code> dependency receive the
+same object.</p>
+
+<div class="note">
+  <span class="label">Consequence</span>
+  <p>Shared instances make bean state dangerous. Every concurrent request touches the same field on a
+  singleton bean, so mutable instance state introduces a race condition that load testing finds and
+  unit tests do not. Keep beans stateless: pass state through method parameters and return
+  values. Reject mutable fields on beans in review unless the author can name the synchronisation
+  strategy.</p>
+</div>
+
+<h2><span class="num">03</span>Injection: three forms, one correct</h2>
+
+<p>Spring supplies dependencies through constructors, setters, or fields. Use constructors.</p>
+
+<h3>Field injection — reject this</h3>
+
+<div class="filename">Do not write this</div>
+<pre><code>@RestController
+public class GreetingController {
+
+    @Autowired                      // Do not do this.
+    private GreetingService service;
+
+    @GetMapping(&quot;/hello&quot;)
+    public String hello() {
+        return service.greet();
+    }
+}</code></pre>
+
+<h3>Constructor injection — use this</h3>
+
+<div class="filename">src/main/java/com/example/demo/GreetingController.java</div>
+<pre><code>@RestController
+public class GreetingController {
+
+    private final GreetingService service;
+
+    // Spring passes the dependency here. No annotation required:
+    // a single constructor is injected automatically.
+    public GreetingController(GreetingService service) {
+        this.service = service;
+    }
+
+    @GetMapping(&quot;/hello&quot;)
+    public String hello() {
+        return service.greet();
+    }
+}</code></pre>
+
+<p>Since Spring 4.3, a class with exactly one constructor needs no <code>@Autowired</code>
+annotation. Spring injects that constructor automatically.</p>
+
+<p>Constructor injection wins for four specific reasons:</p>
+
+<ul>
+  <li><strong>The field becomes <code>final</code>.</strong> Nothing reassigns the dependency after
+  construction, which removes a class of bug and makes the object safe to publish across
+  threads.</li>
+  <li><strong>The object cannot exist in an invalid state.</strong> A constructed instance has every
+  dependency it needs. Field injection constructs the object first and populates it afterwards,
+  so a window exists where the fields hold <code>null</code>.</li>
+  <li><strong>Tests need no framework.</strong> Call the constructor directly:</li>
+</ul>
+
+<div class="filename">A unit test with no Spring context</div>
+<pre><code>class GreetingControllerTest {
+
+    @Test
+    void greets() {
+        // No Spring context. Just a constructor call.
+        var controller = new GreetingController(new GreetingService());
+
+        assertThat(controller.hello()).isEqualTo(&quot;Hello from a bean&quot;);
+    }
+}</code></pre>
+
+<ul>
+  <li><strong>The constructor exposes design problems.</strong> A constructor taking eight
+  dependencies is visibly wrong, and it tells you the class does too much. Field injection hides
+  that signal, because eight annotated fields look no worse than two.</li>
+</ul>
+
+<div class="note">
+  <span class="label">In review</span>
+  <p>Reject <code>@Autowired</code> on a field. The counter-argument you will hear is that
+  constructors are verbose; the answer is that the verbosity is the diagnostic. Setter injection
+  has one legitimate use — a genuinely optional dependency — and you will encounter that case
+  rarely enough to treat each instance individually.</p>
+</div>
+
+<h2><span class="num">04</span>When Spring cannot decide</h2>
+
+<p>Declare two beans that both satisfy one dependency and startup fails with a message that names
+the problem and the fixes:</p>
+
+<pre><code>Parameter 0 of constructor in com.example.demo.GreetingController
+required a single bean, but 2 were found:
+        - englishGreetingService: defined in ...
+        - frenchGreetingService: defined in ...
+
+Action:
+Consider marking one of the beans as @Primary, updating the consumer
+to accept multiple beans, or using @Qualifier to identify the bean
+that should be consumed</code></pre>
+
+<p>Three resolutions exist, in descending order of preference:</p>
+
+<ul>
+  <li><strong><code>@Qualifier("englishGreetingService")</code></strong> on the constructor
+  parameter. Explicit at the point of use, which is where the next reader looks.</li>
+  <li><strong><code>@Primary</code></strong> on one bean definition, marking it the default. Use
+  this when one implementation genuinely is the normal choice and the other is an exception.</li>
+  <li><strong>Accept a <code>List&lt;GreetingService&gt;</code></strong> when you actually want every
+  implementation, which is the correct shape for strategies and validators.</li>
+</ul>
+
+<h2><span class="num">05</span>Beans for classes you do not own</h2>
+
+<p>Stereotype annotations require editing the class. For a class from a library, declare the bean
+in a configuration class instead:</p>
+
+<div class="filename">src/main/java/com/example/demo/ClockConfiguration.java</div>
+<pre><code>@Configuration
+public class ClockConfiguration {
+
+    // Use @Bean when you do not own the class and therefore
+    // cannot annotate it with @Service or @Component.
+    @Bean
+    public Clock systemClock() {
+        return Clock.systemUTC();
+    }
+}</code></pre>
+
+<p>Spring calls <code>systemClock()</code> once and registers the returned object as a bean named
+<code>systemClock</code>. Inject a <code>Clock</code> anywhere and Spring supplies this instance.</p>
+
+<div class="note plain">
+  <span class="label">This is how auto-configuration works</span>
+  <p>Spring Boot's auto-configuration consists of <code>@Configuration</code> classes carrying
+  <code>@Bean</code> methods guarded by conditions. The Flyway beans from
+  <a href="0002-flyway-database-migrations.html">Lesson 02</a> arrive exactly this way: a
+  configuration class declares them, and a condition activates it when
+  <code>spring-boot-starter-flyway</code> sits on the classpath. Auto-configuration uses no
+  mechanism you have not now seen.</p>
+</div>
+
+<hr>
+
+<h2><span class="num">06</span>Check yourself</h2>
+
+<div class="quiz">
+
+  <div class="q" data-answer="2">
+    <p class="stem">What does the ApplicationContext hold?</p>
+    <button type="button">A cached copy of your application properties file</button>
+    <button type="button">The compiled bytecode of all your annotated classes</button>
+    <button type="button">Every object Spring creates and manages for you</button>
+    <button type="button">A queue of HTTP requests awaiting a handler</button>
+    <p class="why" hidden>The ApplicationContext is the registry of beans. Spring builds it at
+    startup, constructs each bean once, and supplies those instances wherever a dependency
+    declares the matching type.</p>
+  </div>
+
+  <div class="q" data-answer="0">
+    <p class="stem">Why does constructor injection beat field injection?</p>
+    <button type="button">It makes dependencies explicit and the object immutable</button>
+    <button type="button">It runs faster because Spring skips reflection entirely</button>
+    <button type="button">It lets Spring inject private fields without setters</button>
+    <button type="button">It allows circular dependencies between your bean classes</button>
+    <p class="why" hidden>The field becomes <code>final</code>, the object never exists
+    half-constructed, and tests call the constructor without starting Spring. A large constructor
+    also exposes a class doing too much, which field injection conceals.</p>
+  </div>
+
+  <div class="q" data-answer="3">
+    <p class="stem">Two beans satisfy one dependency and no qualifier exists. What happens at startup?</p>
+    <button type="button">Spring picks whichever bean it created most recently</button>
+    <button type="button">Spring injects both and merges their configured state</button>
+    <button type="button">Spring silently skips injection and leaves it null</button>
+    <button type="button">Startup fails because Spring cannot choose a candidate</button>
+    <p class="why" hidden>Spring fails fast and names both candidates. Resolve it with
+    <code>@Qualifier</code> at the injection point, <code>@Primary</code> on the default bean, or
+    by accepting a <code>List</code> when you want every implementation.</p>
+  </div>
+
+</div>
+
+<h2><span class="num">07</span>Read this next</h2>
+
+<p><strong><a href="https://docs.spring.io/spring-framework/reference/core/beans.html">The IoC Container</a></strong>
+— the Spring Framework reference chapter on beans. Read sections 1.1 to 1.4 and stop; the rest
+covers cases you will not meet for months.</p>
+
+<p>Continue to <a href="0006-layers-and-spring-data.html">Lesson 06</a>, which applies this to the
+<code>users</code> table you migrated in Lesson 02.</p>
+
+<div class="note">
+  <span class="label">Ask me</span>
+  <p>Ask about bean scopes beyond singleton, about circular dependencies and why they signal a
+  design fault, or about <code>@Configuration</code> proxying. Each deserves a conversation rather
+  than a paragraph here.</p>
+</div>
+
+<h2 id="sources"><span class="num">08</span>Sources</h2>
+
+<ol class="sources">
+  <li id="s1"><a href="https://docs.spring.io/spring-framework/reference/core/beans.html">Spring Framework reference: The IoC Container</a>. Bean definitions, scopes and autowiring.</li>
+  <li id="s2"><a href="https://docs.spring.io/spring-framework/reference/core/beans/dependencies/factory-collaborators.html">Spring Framework reference: Dependency Injection</a>. The constructor-versus-setter guidance quoted here.</li>
+  <li id="s3"><a href="https://docs.spring.io/spring-boot/reference/using/structuring-your-code.html">Spring Boot reference: Structuring your code</a>. Component scanning and package layout.</li>
+</ol>
+
+<p class="next">
+  Spring track, Lesson 05 · <a href="0004-flyway-development-workflow.html">previous</a> ·
+  <a href="0006-layers-and-spring-data.html">next</a> ·
+  <a href="../../index.html">workspace</a>
+</p>
+
+</main>
+
+<script src="../../assets/quiz.js"></script>
+</body>
+</html>

@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Spring 6 · Controller, service, repository</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧱</text></svg>">
+  <link rel="stylesheet" href="../../assets/lesson.css">
+</head>
+<body>
+
+<header class="masthead wrap">
+  <p class="crumb"><a href="../../index.html">Workspace</a> · Spring track · Lesson 06</p>
+  <h1>Controller, service, repository</h1>
+  <p class="standfirst">Three layers, one rule each. Finally, Java code that reads the users table you migrated in Lesson 02.</p>
+  <p class="meta-line">
+    ~25 minutes · Spring Boot 4.1.1 · Spring Data JPA · PostgreSQL<br>
+    I did not execute this code. Report any output that differs on your machine.
+  </p>
+</header>
+
+<main class="wrap">
+
+<p><a href="0002-flyway-database-migrations.html">Lesson 02</a> created a <code>users</code> table.
+Nothing in the application has read it since. This lesson closes that gap and answers the question
+every new Spring codebase raises: where does the logic go?</p>
+
+<h2><span class="num">01</span>The three layers</h2>
+
+<pre><code>HTTP request
+    │
+    ▼
+UserController    HTTP only: parse, delegate, serialise
+    │
+    ▼
+UserService       business rules, transaction boundary
+    │
+    ▼
+UserRepository    data access only
+    │
+    ▼
+PostgreSQL        schema owned by Flyway</code></pre>
+
+<p>Each layer has exactly one responsibility:</p>
+
+<ul>
+  <li><strong>Controller</strong> — translate HTTP into a method call and the result back into
+  HTTP. It contains no business rules.</li>
+  <li><strong>Service</strong> — enforce business rules and define the transaction boundary. It
+  knows nothing about HTTP.</li>
+  <li><strong>Repository</strong> — read and write rows. It enforces no rules.</li>
+</ul>
+
+<div class="note">
+  <span class="label">The test that matters</span>
+  <p>A service must not import anything from <code>org.springframework.web</code>. When a service
+  needs the HTTP request, the responsibility has leaked and the logic belongs in the controller or
+  the parameter list. This single import rule catches most layering violations in review.</p>
+</div>
+
+<h2><span class="num">02</span>The entity</h2>
+
+<p>An entity maps a Java class to a table. Flyway still owns the schema; the entity only describes
+what Flyway already created.</p>
+
+<div class="filename">src/main/java/com/example/demo/user/User.java</div>
+<pre><code>package com.example.demo.user;
+
+import jakarta.persistence.*;
+import java.time.Instant;
+
+@Entity
+@Table(name = &quot;users&quot;)
+public class User {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @Column(nullable = false, unique = true)
+    private String email;
+
+    @Column(name = &quot;display_name&quot;, nullable = false)
+    private String displayName;
+
+    @Column(name = &quot;created_at&quot;, nullable = false)
+    private Instant createdAt;
+
+    protected User() { }   // JPA requires a no-arg constructor.
+
+    public User(String email, String displayName) {
+        this.email = email;
+        this.displayName = displayName;
+        this.createdAt = Instant.now();
+    }
+
+    public Long getId()          { return id; }
+    public String getEmail()     { return email; }
+    public String getDisplayName() { return displayName; }
+}</code></pre>
+
+<div class="note">
+  <span class="label">Constraint</span>
+  <p>Never let an entity define the schema. With <code>ddl-auto=validate</code> from Lesson 02,
+  Hibernate compares this class against the real table at startup and fails on any mismatch. Adding
+  a field here does not add a column — write a migration, then add the field. The startup failure
+  is the mechanism that keeps the two in step.</p>
+</div>
+
+<h2><span class="num">03</span>The repository</h2>
+
+<p>Declare an interface. Write no implementation.</p>
+
+<div class="filename">src/main/java/com/example/demo/user/UserRepository.java</div>
+<pre><code>package com.example.demo.user;
+
+import org.springframework.data.jpa.repository.JpaRepository;
+import java.util.Optional;
+
+// You write no implementation. Spring Data generates one.
+public interface UserRepository extends JpaRepository&lt;User, Long&gt; {
+
+    Optional&lt;User&gt; findByEmail(String email);
+
+    boolean existsByEmail(String email);
+}</code></pre>
+
+<p>At startup, Spring Data JPA finds every interface extending <code>JpaRepository</code> and
+generates a proxy implementing it. Extending <code>JpaRepository&lt;User, Long&gt;</code> supplies
+<code>save</code>, <code>findById</code>, <code>findAll</code>, <code>delete</code> and roughly
+twenty more methods.</p>
+
+<p>Spring Data derives the other methods from their names. It parses the name into a query at
+startup:</p>
+
+<pre><code>findByEmail(String email)
+        → SELECT * FROM users WHERE email = ?
+
+findByDisplayNameContainingIgnoreCase(String part)
+        → SELECT * FROM users WHERE UPPER(display_name) LIKE UPPER(?)
+
+existsByEmail(String email)
+        → SELECT COUNT(*) &gt; 0 FROM users WHERE email = ?
+
+countByCreatedAtAfter(Instant since)
+        → SELECT COUNT(*) FROM users WHERE created_at &gt; ?</code></pre>
+
+<div class="note">
+  <span class="label">Two consequences of name-derived queries</span>
+  <p>First, a misspelled property name fails at <em>startup</em>, not at call time — Spring Data
+  cannot parse the name and refuses to build the context. Treat that failure as a compile error.</p>
+  <p>Second, derived names stop scaling. A method named
+  <code>findByEmailAndDisplayNameOrCreatedAtAfter</code> is unreadable. Switch to
+  <code>@Query</code> with explicit JPQL once a name exceeds roughly four conditions.</p>
+</div>
+
+<h2><span class="num">04</span>The service</h2>
+
+<p>The service holds the rule that the repository and controller both lack: an email registers
+once.</p>
+
+<div class="filename">src/main/java/com/example/demo/user/UserService.java</div>
+<pre><code>package com.example.demo.user;
+
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+@Service
+public class UserService {
+
+    private final UserRepository users;
+
+    public UserService(UserRepository users) {
+        this.users = users;
+    }
+
+    @Transactional
+    public User register(String email, String displayName) {
+        if (users.existsByEmail(email)) {
+            throw new EmailAlreadyRegisteredException(email);
+        }
+        return users.save(new User(email, displayName));
+    }
+}</code></pre>
+
+<p>Note the constructor injection from
+<a href="0005-beans-and-dependency-injection.html">Lesson 05</a>: Spring supplies the generated
+repository proxy through the constructor, and the field is <code>final</code>.</p>
+
+<div class="note">
+  <span class="label">The check-then-act race</span>
+  <p><code>existsByEmail</code> followed by <code>save</code> contains a race: two concurrent
+  requests can both pass the check before either saves. The <code>UNIQUE</code> constraint from
+  the Lesson 02 migration is what actually prevents the duplicate; the check exists to produce a
+  clear error in the normal case. Keep both. Application checks give good messages, database
+  constraints give correctness, and only one of them survives concurrency.</p>
+</div>
+
+<h2><span class="num">05</span>The controller</h2>
+
+<div class="filename">src/main/java/com/example/demo/user/UserController.java</div>
+<pre><code>package com.example.demo.user;
+
+import org.springframework.web.bind.annotation.*;
+
+@RestController
+@RequestMapping(&quot;/users&quot;)
+public class UserController {
+
+    private final UserService userService;
+
+    public UserController(UserService userService) {
+        this.userService = userService;
+    }
+
+    @PostMapping
+    public UserResponse register(@RequestBody RegisterRequest request) {
+        User user = userService.register(request.email(), request.displayName());
+        return UserResponse.from(user);
+    }
+}
+
+// Records keep the wire format separate from the entity.
+record RegisterRequest(String email, String displayName) { }
+
+record UserResponse(Long id, String email, String displayName) {
+    static UserResponse from(User user) {
+        return new UserResponse(
+            user.getId(), user.getEmail(), user.getDisplayName());
+    }
+}</code></pre>
+
+<div class="note">
+  <span class="label">Never serialise entities directly</span>
+  <p>Returning <code>User</code> from a controller couples your public API to your database schema:
+  a column rename becomes a breaking API change, and any field you add leaks automatically —
+  including a password hash. The <code>UserResponse</code> record costs six lines and removes both
+  problems. Reject entity-returning controllers in review.</p>
+</div>
+
+<h2><span class="num">06</span>Package by feature</h2>
+
+<p>Every class above lives in <code>com.example.demo.user</code>. Group by feature, not by layer.</p>
+
+<p>The alternative — <code>controller/</code>, <code>service/</code>, <code>repository/</code>
+packages — looks organised and fails in practice. Every change to one feature then touches three
+packages, unrelated features sit adjacent, and nothing can be package-private because collaborators
+live elsewhere. Feature packages keep a change in one directory and let you hide internals.</p>
+
+<hr>
+
+<h2><span class="num">07</span>Check yourself</h2>
+
+<div class="quiz">
+
+  <div class="q" data-answer="1">
+    <p class="stem">Who writes the implementation of <code>UserRepository</code>?</p>
+    <button type="button">You write the implementation class yourself by hand</button>
+    <button type="button">Spring Data generates a proxy at application startup</button>
+    <button type="button">Hibernate compiles one during the Maven build step</button>
+    <button type="button">The JDBC driver supplies a default implementation class</button>
+    <p class="why" hidden>Spring Data finds interfaces extending <code>JpaRepository</code> and
+    generates an implementation at startup, deriving each custom query from its method name.</p>
+  </div>
+
+  <div class="q" data-answer="2">
+    <p class="stem">Where do business rules belong?</p>
+    <button type="button">In the controller, closest to the incoming request</button>
+    <button type="button">In the repository, closest to the stored data</button>
+    <button type="button">In the service layer, between controller and repository</button>
+    <button type="button">In the entity class, beside the mapped fields</button>
+    <p class="why" hidden>The service enforces rules and owns the transaction boundary. The
+    controller translates HTTP only; the repository reads and writes rows only.</p>
+  </div>
+
+  <div class="q" data-answer="0">
+    <p class="stem">You declare <code>Optional&lt;User&gt; findByEmail(String email)</code>. How does Spring Data handle it?</p>
+    <button type="button">It derives the query from the method name</button>
+    <button type="button">It calls a stored procedure with that name</button>
+    <button type="button">It scans every row and filters them afterwards</button>
+    <button type="button">It requires a matching native SQL annotation first</button>
+    <p class="why" hidden>Spring Data parses the method name into a query at startup. A name
+    referencing a property the entity lacks fails startup, so treat the parse failure as a compile
+    error.</p>
+  </div>
+
+</div>
+
+<h2><span class="num">08</span>Read this next</h2>
+
+<p><strong><a href="https://docs.spring.io/spring-data/jpa/reference/jpa/query-methods.html">Spring Data JPA: Query Methods</a></strong>
+— the full derivation grammar, including every supported keyword. Skim it once so you know what
+names are available, then return to it as reference.</p>
+
+<div class="note">
+  <span class="label">Ask me</span>
+  <p>Three topics follow directly from this lesson and each deserves its own session: transactions
+  and the proxy self-invocation trap, the N+1 query problem that appears the moment
+  <code>User</code> gains a relationship, and testing this stack against real PostgreSQL with
+  Testcontainers. Ask for whichever you hit first.</p>
+</div>
+
+<h2 id="sources"><span class="num">09</span>Sources</h2>
+
+<ol class="sources">
+  <li id="s1"><a href="https://docs.spring.io/spring-data/jpa/reference/jpa/query-methods.html">Spring Data JPA reference: Query Methods</a>. Name derivation rules.</li>
+  <li id="s2"><a href="https://docs.spring.io/spring-data/jpa/reference/repositories/core-concepts.html">Spring Data: Core concepts</a>. Repository interfaces and generated proxies.</li>
+  <li id="s3"><a href="https://docs.spring.io/spring-boot/reference/data/sql.html">Spring Boot reference: SQL databases</a>. JPA auto-configuration and <code>ddl-auto</code>.</li>
+</ol>
+
+<p class="next">
+  Spring track, Lesson 06 · <a href="0005-beans-and-dependency-injection.html">previous</a> ·
+  <a href="../../index.html">workspace</a>
+</p>
+
+</main>
+
+<script src="../../assets/quiz.js"></script>
+</body>
+</html>

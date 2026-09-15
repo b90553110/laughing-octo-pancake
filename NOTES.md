@@ -57,3 +57,24 @@ Preferences and observations that shape how lessons get written.
 - Correction worth remembering: Spring Boot sets `spring.flyway.clean-disabled`
   to `true`, which differs from Flyway's own default. Several web sources state
   the opposite. Read `FlywayProperties` in the Boot sources jar for defaults.
+
+## Session 4 (15 Sep 2026)
+
+- Restructured lessons into **tracks**. `lessons/spring/` and
+  `lessons/playwright/`, numbered independently. Moving the four existing Spring
+  lessons changed their published URLs; the repository is new enough that the
+  cost is near zero, and delaying the move would raise it.
+- Added the Playwright track: TypeScript, targeting an Angular front end with
+  Angular Material. The learner named Angular when choosing the language, which
+  is more specific than the question asked — build on that and use Material's
+  ARIA roles in examples rather than generic HTML.
+- Recorded a deliberate deviation in `MISSION.md`: the skill requires one mission
+  per workspace, and this workspace now holds two. The reasoning sits in the file
+  so a future session does not "fix" it.
+- Spring track now covers setup, Flyway (three lessons), beans, and the three
+  layers. The `users` table finally has Java code reading it.
+- Teaching decision: Spring Lesson 06 mentions `@Transactional` without
+  explaining it, and flags that the transactions lesson is owed. Deliberate — the
+  layers lesson needs the annotation present to be honest about where the
+  transaction boundary sits.
+

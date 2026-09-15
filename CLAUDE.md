@@ -12,26 +12,50 @@ The repository root *is* the teaching workspace root, so the paths in
 `NOTES.md`, `lessons/`, `reference/`, `learning-records/`, `assets/`) all live at
 the root and are served directly by Pages.
 
+## Tracks
+
+Lessons belong to a **track**: one subject, numbered independently, read in order.
+Each track owns a directory under `lessons/`:
+
+```
+lessons/spring/0001-...html      Spring Boot, Maven, Flyway, JPA
+lessons/playwright/0001-...html  Playwright end-to-end tests (TypeScript, Angular)
+```
+
+Numbering restarts per track, so "Spring lesson 5" and "Playwright lesson 1" are
+both unambiguous. Reference sheets stay flat in `reference/` and take a subject
+name (`flyway-cheatsheet.html`, `playwright-cheatsheet.html`).
+
+Lessons sit two directories deep, so their links to shared assets use `../../`:
+`../../assets/lesson.css`, `../../index.html`, `../../reference/<sheet>.html`.
+Links between lessons in the same track stay bare (`0002-....html`).
+
+To add a track: create `lessons/<track>/`, add a `<section>` for it in
+`index.html` with its own `<ol class="list">`, and add a mission section to
+`MISSION.md`.
+
 ## After generating material
 
 `index.html` is the front door. It is static, so it cannot discover new files on
 its own — whenever you add material, do all of these:
 
-1. Write the file to its usual place (`lessons/0001-<slug>.html`,
-   `reference/<slug>.html`, and so on).
-2. Add a link to it in `index.html`, in `#lesson-list` or `#reference-list`.
-   Newest lesson last. Use a relative `href` so links keep working under the
-   `/laughing-octo-pancake/` path. One entry looks like:
+1. Write the file into its track (`lessons/<track>/000N-<slug>.html`) or, for a
+   reference sheet, into `reference/<slug>.html`.
+2. Add a link to it in `index.html`, inside that track's `<ol>` or the reference
+   `<ul>`. Newest lesson last. Use a relative `href` so links keep working under
+   the `/laughing-octo-pancake/` path. One entry looks like:
 
    ```html
    <li>
-     <a href="lessons/0001-german-cases.html">German cases: the accusative</a>
-     <span class="meta">Lesson 1 · 2026-09-08</span>
+     <a href="lessons/spring/0007-transactions.html">Transactions</a>
+     <span class="meta">Lesson 7 · ~20 min · the proxy self-invocation trap</span>
    </li>
    ```
-3. When `MISSION.md` is first written or changes, replace the placeholder text in
-   the `#mission` section with a short summary of it.
-4. Commit and push to `main`. Pages redeploys automatically, within a minute or
+3. Update the track's "Queued:" note in `index.html` when the plan changes, and
+   the track's section in `MISSION.md` when its goal changes.
+4. Verify every relative link resolves on disk before committing. Moving a lesson
+   between directories breaks `../` paths silently.
+5. Commit and push to `main`. Pages redeploys automatically, within a minute or
    so.
 
 Material that is prose-only (`MISSION.md`, `learning-records/*.md`) does not need
@@ -67,6 +91,11 @@ preferences; the learner set them explicitly.
 - **Technical precision over readability flourishes.** Quote exact error strings,
   exact property names and exact defaults. Verify each against the source — a jar,
   a POM, or official documentation — before publishing.
+
+Quiz options must all carry the **same number of words**, and character counts as
+close as practical, so that formatting leaks no clue about which answer is
+correct. Vary which index holds the correct answer across the questions in a
+lesson; three questions all answered by the first option is its own tell.
 
 Lesson 01 predates these rules and still uses the older conversational voice.
 Rewrite it when convenient; do not write anything new in that voice.

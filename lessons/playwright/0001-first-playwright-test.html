@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Playwright 1 · Your first test</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎭</text></svg>">
+  <link rel="stylesheet" href="../../assets/lesson.css">
+</head>
+<body>
+
+<header class="masthead wrap">
+  <p class="crumb"><a href="../../index.html">Workspace</a> · Playwright track · Lesson 01</p>
+  <h1>Your first Playwright test</h1>
+  <p class="standfirst">Install the runner, let it start Angular for you, and write one test that survives a redeploy.</p>
+  <p class="meta-line">
+    ~20 minutes · Playwright 1.63.0 · Angular 22 · TypeScript<br>
+    Versions verified against the npm registry on 15 September 2026. I did not execute this code.
+  </p>
+</header>
+
+<main class="wrap">
+
+<p>This track starts a second subject. It shares nothing with the Spring track except the
+discipline: verify behaviour, and write tests that fail only when the application breaks.</p>
+
+<p>That second clause is the whole difficulty. An end-to-end suite that fails randomly gets
+ignored, then deleted. Every decision in this track optimises against flakiness, starting with the
+two that matter most: how Playwright waits, and how you find elements.</p>
+
+<h2><span class="num">01</span>Install</h2>
+
+<p>Run this in your Angular project root:</p>
+
+<pre><code>npm init playwright@latest
+
+# Answers for an Angular project:
+#   TypeScript            → yes
+#   Tests folder          → e2e   (not &quot;tests&quot;: Angular uses that name)
+#   GitHub Actions        → your call
+#   Install browsers      → yes</code></pre>
+
+<div class="note">
+  <span class="label">Name the folder e2e</span>
+  <p>Playwright proposes <code>tests/</code>. Angular's own unit tests already live under
+  <code>src/</code>, and a top-level <code>tests/</code> invites confusion about which runner owns
+  which file. Choose <code>e2e/</code> and the boundary stays obvious to everyone.</p>
+</div>
+
+<pre><code>my-angular-app/
+├── e2e/
+│   └── example.spec.ts
+├── playwright.config.ts
+├── angular.json
+└── package.json</code></pre>
+
+<p>The installer downloads browser binaries into a cache outside your project. Those binaries are
+version-matched to the Playwright release, which is why upgrading Playwright requires
+<code>npx playwright install</code> again.</p>
+
+<h2><span class="num">02</span>Configure</h2>
+
+<p>Edit <code>playwright.config.ts</code>. Four settings earn their place immediately:</p>
+
+<div class="filename">playwright.config.ts</div>
+<pre><code>import { defineConfig, devices } from &#x27;@playwright/test&#x27;;
+
+export default defineConfig({
+  testDir: &#x27;./e2e&#x27;,
+
+  // Fail the build if a test.only reaches CI.
+  forbidOnly: !!process.env.CI,
+  retries: process.env.CI ? 2 : 0,
+
+  use: {
+    baseURL: &#x27;http://localhost:4200&#x27;,
+    // Keep a trace from the first retry of a failing test.
+    trace: &#x27;on-first-retry&#x27;,
+  },
+
+  projects: [
+    { name: &#x27;chromium&#x27;, use: { ...devices[&#x27;Desktop Chrome&#x27;] } },
+  ],
+
+  // Playwright starts Angular itself, then shuts it down.
+  webServer: {
+    command: &#x27;ng serve&#x27;,
+    url: &#x27;http://localhost:4200&#x27;,
+    reuseExistingServer: !process.env.CI,
+    timeout: 120_000,
+  },
+});</code></pre>
+
+<ul>
+  <li><strong><code>webServer</code></strong> — Playwright runs <code>ng serve</code>, waits for
+  port 4200 to answer, runs the tests, then stops the server. Locally,
+  <code>reuseExistingServer</code> attaches to a dev server you already have running instead of
+  starting a second one.</li>
+  <li><strong><code>baseURL</code></strong> — lets tests call <code>page.goto('/register')</code>.
+  Point it at a deployed environment through an environment variable and the same suite runs
+  against staging unchanged.</li>
+  <li><strong><code>trace: 'on-first-retry'</code></strong> — the most valuable setting in the
+  file. See §04.</li>
+  <li><strong><code>forbidOnly</code></strong> — a stray <code>test.only</code> silently reduces CI
+  to one test. This setting turns that mistake into a build failure.</li>
+</ul>
+
+<h2><span class="num">03</span>Write the test</h2>
+
+<div class="filename">e2e/register.spec.ts</div>
+<pre><code>import { test, expect } from &#x27;@playwright/test&#x27;;
+
+test(&#x27;registers a user&#x27;, async ({ page }) =&gt; {
+  await page.goto(&#x27;/register&#x27;);
+
+  await page.getByLabel(&#x27;Email&#x27;).fill(&#x27;ada@example.test&#x27;);
+  await page.getByLabel(&#x27;Display name&#x27;).fill(&#x27;Ada Lovelace&#x27;);
+  await page.getByRole(&#x27;button&#x27;, { name: &#x27;Create account&#x27; }).click();
+
+  await expect(page.getByRole(&#x27;heading&#x27;, { name: &#x27;Welcome, Ada&#x27; }))
+    .toBeVisible();
+});</code></pre>
+
+<p>Read what this test does <em>not</em> contain. No waits. No sleeps. No CSS selectors. No check
+that the button exists before clicking it.</p>
+
+<p><strong>Auto-waiting</strong> removes all of it. Before clicking, Playwright waits for the
+element to be attached, visible, stable, enabled, and able to receive events. It retries until the
+element passes every check or the timeout expires. Angular's rendering cycle therefore needs no
+special handling: an element that has not rendered yet is one Playwright is still waiting for.</p>
+
+<p><code>expect(locator).toBeVisible()</code> works the same way. It retries until the assertion
+passes or times out, which is why the last line needs no wait either.</p>
+
+<div class="note">
+  <span class="label">The rule that prevents most flakiness</span>
+  <p>Never call <code>page.waitForTimeout()</code> in a test. A fixed sleep is either too short,
+  which makes the test flaky, or too long, which makes the suite slow — and it is usually both on
+  different machines. Every legitimate wait is expressible as an assertion about page state.</p>
+</div>
+
+<h2><span class="num">04</span>Run, and read a failure</h2>
+
+<pre><code>npx playwright test                 # all tests, headless
+npx playwright test --ui           # interactive runner; use while writing
+npx playwright test --headed       # watch a real browser
+npx playwright test e2e/register   # one file
+npx playwright show-report         # open the last HTML report
+npx playwright codegen localhost:4200   # record actions into code</code></pre>
+
+<p>Use <code>--ui</code> while writing tests. It shows every action, the DOM at each step, and lets
+you re-run a single test without restarting Angular.</p>
+
+<p>When a test fails in CI, open the <strong>trace</strong>. A trace records a DOM snapshot before
+and after every action, the network calls, the console output, and the source line for each step.
+It turns "flaky in CI, passes locally" from a guess into an observation: you see the exact DOM at
+the moment the click missed.</p>
+
+<div class="note">
+  <span class="label">Why on-first-retry</span>
+  <p>Tracing every run costs time and disk. <code>on-first-retry</code> records nothing while tests
+  pass, and produces a full trace the moment one fails and retries. You get the diagnostic exactly
+  when you need it and pay nothing the rest of the time.</p>
+</div>
+
+<h2><span class="num">05</span>What to test at this level</h2>
+
+<p>End-to-end tests are the slowest and most fragile tests you own. Spend them deliberately.</p>
+
+<ul>
+  <li><strong>Test the handful of journeys that generate revenue or block users.</strong>
+  Registration, login, checkout, the primary create-and-save path. Ten solid journeys beat two
+  hundred shallow ones.</li>
+  <li><strong>Push everything else down.</strong> Component behaviour belongs in Angular's own
+  component tests, which run in a fraction of the time.</li>
+  <li><strong>Never assert on styling or exact copy</strong> unless the product requires that
+  exact string. Both change for reasons unrelated to correctness.</li>
+</ul>
+
+<div class="note">
+  <span class="label">In review</span>
+  <p>A pull request that adds twenty end-to-end tests is a problem, not progress. Ask which layer
+  each test belongs to. The suite's value falls the moment its runtime or its failure rate makes
+  the team stop reading the results.</p>
+</div>
+
+<hr>
+
+<h2><span class="num">06</span>Check yourself</h2>
+
+<div class="quiz">
+
+  <div class="q" data-answer="3">
+    <p class="stem">What does <code>npx playwright test</code> do by default?</p>
+    <button type="button">Opens one visible browser and steps through slowly</button>
+    <button type="button">Runs only the tests changed since last commit</button>
+    <button type="button">Starts the dev server and waits for input</button>
+    <button type="button">Runs every test headless in the configured browsers</button>
+    <p class="why" hidden>It runs headless across every project in the config, in parallel. Add
+    <code>--headed</code> to watch a browser, or <code>--ui</code> for the interactive runner.</p>
+  </div>
+
+  <div class="q" data-answer="1">
+    <p class="stem">What does a Playwright trace contain?</p>
+    <button type="button">A plain text log of assertion failures only</button>
+    <button type="button">Snapshots, actions and network calls for one run</button>
+    <button type="button">The source code of every page you visited</button>
+    <button type="button">A video recording with no other captured data</button>
+    <p class="why" hidden>A trace holds DOM snapshots before and after each action, network
+    activity, console output and the source line per step. It is the tool that explains a CI-only
+    failure.</p>
+  </div>
+
+  <div class="q" data-answer="2">
+    <p class="stem">What does the <code>webServer</code> config block do?</p>
+    <button type="button">Serves the Playwright HTML report on a port</button>
+    <button type="button">Proxies all browser traffic through a recording server</button>
+    <button type="button">Starts your app before tests and stops it</button>
+    <button type="button">Deploys the built application to a test environment</button>
+    <p class="why" hidden>Playwright runs the command, waits for the URL to respond, runs the
+    tests, then shuts the server down. <code>reuseExistingServer</code> attaches to a dev server
+    you already started locally.</p>
+  </div>
+
+</div>
+
+<h2><span class="num">07</span>Read this next</h2>
+
+<p><strong><a href="https://playwright.dev/docs/intro">Playwright: Installation and first test</a></strong>
+— the official introduction. Short, current, and written by the maintainers.</p>
+
+<p>Continue to <a href="0002-locators-and-waiting.html">Lesson 02</a>, which covers the single
+highest-leverage skill in this track: choosing locators that survive a refactor. Keep the
+<a href="../../reference/playwright-cheatsheet.html">Playwright reference sheet</a> open while you
+write tests.</p>
+
+<div class="note">
+  <span class="label">Ask me</span>
+  <p>Ask for help wiring this suite into CI, or for the authentication problem — logging in once
+  and reusing that state across tests, rather than logging in inside every test. Both arrive
+  quickly on a real project.</p>
+</div>
+
+<h2 id="sources"><span class="num">08</span>Sources</h2>
+
+<ol class="sources">
+  <li id="s1"><a href="https://playwright.dev/docs/intro">Playwright documentation: Installation</a>. The <code>npm init playwright@latest</code> flow.</li>
+  <li id="s2"><a href="https://playwright.dev/docs/test-webserver">Playwright documentation: Web server</a>. The <code>webServer</code> configuration block.</li>
+  <li id="s3"><a href="https://playwright.dev/docs/trace-viewer">Playwright documentation: Trace viewer</a>. Trace contents and the <code>on-first-retry</code> mode.</li>
+  <li id="s4"><a href="https://www.npmjs.com/package/@playwright/test">@playwright/test on npm</a>. Version 1.63.0, published 4 September 2026, read from the registry.</li>
+</ol>
+
+<p class="next">
+  Playwright track, Lesson 01 · <a href="0002-locators-and-waiting.html">next</a> ·
+  <a href="../../index.html">workspace</a>
+</p>
+
+</main>
+
+<script src="../../assets/quiz.js"></script>
+</body>
+</html>
