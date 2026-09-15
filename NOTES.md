@@ -42,3 +42,18 @@ Preferences and observations that shape how lessons get written.
 - Signal to watch: the tech-lead framing is landing on *operational* questions
   (what breaks in production) more than on API surface. Weight future lessons
   accordingly — migration design, rolling deploys, testing strategy.
+
+## Session 3 (15 Sep 2026)
+
+- Set a standing style directive: active voice, no ambiguous phrasing, no casual
+  metaphors, direct and authoritative engineering tone, technical precision first.
+  Recorded in `CLAUDE.md` so every future session follows it, not just this one.
+- Rewrote Lesson 02 to that standard. Lesson 01 still carries the older
+  conversational voice and needs the same treatment.
+- Asked for Flyway practice lessons covering team conflicts and frequent
+  development-environment schema changes. Both topics are operational rather than
+  API-level, which matches the pattern noted in session 2. Keep weighting lessons
+  toward operations.
+- Correction worth remembering: Spring Boot sets `spring.flyway.clean-disabled`
+  to `true`, which differs from Flyway's own default. Several web sources state
+  the opposite. Read `FlywayProperties` in the Boot sources jar for defaults.

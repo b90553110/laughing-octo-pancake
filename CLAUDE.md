@@ -47,6 +47,30 @@ a link — it is read in the repository, not on the site.
 - `.nojekyll` is deliberate: it stops Pages running Jekyll, so files under
   directories like `assets/` are served exactly as committed.
 
+## Writing style for lessons
+
+Every lesson and reference document follows these rules. They are not stylistic
+preferences; the learner set them explicitly.
+
+- **Active voice.** Name the actor. Write "Flyway applies the migration", not
+  "the migration is applied". Scan drafts for "is/are/was/were + past participle"
+  and rewrite each occurrence.
+- **No ambiguous phrasing.** Replace "this", "that" and "it" with the noun they
+  refer to whenever more than one referent is possible. State defaults, versions
+  and artifact names exactly rather than describing them approximately.
+- **No casual metaphors.** Drop analogies, jokes and figurative comparisons.
+  Describe the mechanism directly. "Three annotations in a trench coat" is
+  prohibited; "@SpringBootApplication combines three annotations" is correct.
+- **Direct and authoritative.** Give the instruction, then the reason. Write
+  "Add the starter" rather than "you might want to add the starter". Make
+  recommendations as recommendations, and mark genuine uncertainty as uncertainty.
+- **Technical precision over readability flourishes.** Quote exact error strings,
+  exact property names and exact defaults. Verify each against the source — a jar,
+  a POM, or official documentation — before publishing.
+
+Lesson 01 predates these rules and still uses the older conversational voice.
+Rewrite it when convenient; do not write anything new in that voice.
+
 ## The teach skill
 
 `.claude/skills/teach/` is a verbatim copy of

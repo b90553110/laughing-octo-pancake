@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Lesson 4 · Iterating on migrations in development</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔁</text></svg>">
+  <link rel="stylesheet" href="../assets/lesson.css">
+</head>
+<body>
+
+<header class="masthead wrap">
+  <p class="crumb"><a href="../index.html">Workspace</a> · Lesson 04</p>
+  <h1>Iterating on migrations in development</h1>
+  <p class="standfirst">Schema design changes twenty times before it is right. Flyway's immutability rule applies to shared environments, not to your laptop.</p>
+  <p class="meta-line">
+    ~20 minutes · Flyway 12.4.0 · Spring Boot 4.1.1<br>
+    Property defaults read from <code>FlywayProperties.java</code> in the Spring Boot sources jar.
+    I did not execute this code.
+  </p>
+</header>
+
+<main class="wrap">
+
+<p>New engineers apply the rule from
+<a href="0002-flyway-database-migrations.html">Lesson 02</a> too widely. They write a migration,
+find a mistake ten minutes later, and add a second migration to correct the first. After two days
+the branch contains six migrations describing one schema change, and the review is unreadable.</p>
+
+<p>Read the rule precisely: <strong>never modify a migration that has run on any machine other
+than your own.</strong> A migration on an unmerged branch has run only on your machine. Edit it
+freely.</p>
+
+<h2><span class="num">01</span>The development loop</h2>
+
+<p>Editing the file is the easy half. Your local database already recorded the old checksum, so the
+next startup fails validation. You need to discard the local database state, and three mechanisms
+exist. They differ in risk.</p>
+
+<h3>Rebuild the database — use this one</h3>
+
+<p>Destroy the container and recreate it. Flyway then applies your edited migration from empty,
+which is exactly what CI and every fresh environment will do.</p>
+
+<div class="filename">docker-compose.yml</div>
+<pre><code>services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: demo
+      POSTGRES_USER: demo
+      POSTGRES_PASSWORD: demo
+    ports: [&quot;5432:5432&quot;]</code></pre>
+
+<div class="filename">reset the database</div>
+<pre><code># Destroy the database and rebuild it from migrations.
+docker compose down -v &amp;&amp; docker compose up -d db
+./mvnw spring-boot:run</code></pre>
+
+<div class="note">
+  <span class="label">Recommendation</span>
+  <p>Make this one command and put it in the README. The whole workflow depends on rebuilding
+  being cheap: an engineer who finds it tedious will start editing the shared database by hand,
+  and the repository stops describing the schema. Optimise the reset, not the workaround.</p>
+</div>
+
+<h3>flyway clean — narrower, and disabled by default</h3>
+
+<p><code>clean</code> drops every object in the configured schemas. Spring Boot sets
+<code>spring.flyway.clean-disabled</code> to <code>true</code>, so the command fails until you
+enable it explicitly:</p>
+
+<div class="filename">application-dev.properties</div>
+<pre><code># application-dev.properties — LOCAL DEVELOPMENT ONLY
+spring.flyway.clean-disabled=false</code></pre>
+
+<div class="note">
+  <span class="label">Constraint</span>
+  <p>Set this property in a development-profile file only, never in
+  <code>application.properties</code>. A build that carries
+  <code>clean-disabled=false</code> into an environment whose datasource points at a shared
+  database is one configuration mistake away from deleting it. Rebuilding a container carries no
+  equivalent risk, which is why §01 recommends it instead.</p>
+</div>
+
+<h3>repair — the wrong tool here</h3>
+
+<p><code>repair</code> overwrites stored checksums to match your files. It does not re-run the
+edited SQL, so your database keeps the schema the <em>old</em> version of the migration produced
+while the history table claims the new one ran. You then develop against a schema that exists on no
+other machine. Do not use <code>repair</code> to iterate.</p>
+
+<h2><span class="num">02</span>Squash before you merge</h2>
+
+<p>Your branch's migration history is working material, not a record anyone needs. Collapse it into
+the migration you actually intend to ship:</p>
+
+<pre><code># Before: your branch, after two days of iteration
+V20260915103000__add_users_phone.sql
+V20260915141500__fix_users_phone_type.sql
+V20260916091200__add_users_phone_index.sql
+
+# After: one migration describing the end state
+V20260916091200__add_users_phone.sql</code></pre>
+
+<p>Reviewers then read one file describing the end state rather than reconstructing it from three
+diffs. Squash while the migrations remain local; once any of them merges, Lesson 02's rule applies
+and you add a new migration instead.</p>
+
+<div class="note plain">
+  <span class="label">Check before squashing</span>
+  <p>Confirm no shared environment applied the intermediate migrations. A review app or a shared
+  development database that tracks your branch counts as a shared environment. When one exists,
+  keep the sequence and rebuild that environment from empty.</p>
+</div>
+
+<h2><span class="num">03</span>Seed data belongs in a separate location</h2>
+
+<p>Development needs rows: a few users to click through, an order to render. Those rows must never
+reach production, so keep them out of <code>db/migration</code> entirely and add a second location
+under the development profile.</p>
+
+<div class="filename">application-dev.properties</div>
+<pre><code># application-dev.properties
+# Load the schema, then development-only seed data.
+spring.flyway.locations=classpath:db/migration,classpath:db/dev-seed</code></pre>
+
+<div class="filename">src/main/resources/db/dev-seed/R__dev_users.sql</div>
+<pre><code>-- src/main/resources/db/dev-seed/R__dev_users.sql
+-- Repeatable: re-runs whenever its checksum changes.
+
+DELETE FROM users WHERE email LIKE &#x27;%@example.test&#x27;;
+
+INSERT INTO users (email, display_name) VALUES
+  (&#x27;ada@example.test&#x27;,   &#x27;Ada Lovelace&#x27;),
+  (&#x27;grace@example.test&#x27;, &#x27;Grace Hopper&#x27;);</code></pre>
+
+<p>The <code>R__</code> prefix marks a repeatable migration. Flyway runs repeatable migrations
+after all versioned migrations, and re-runs each one whenever its checksum changes. Seed data
+therefore updates when you edit the file, with no version number to manage. Make the script
+idempotent — the <code>DELETE</code> above does that — because Flyway will run it more than once.</p>
+
+<div class="note">
+  <span class="label">Constraint</span>
+  <p>Production configuration must never list <code>classpath:db/dev-seed</code>. Verify this by
+  starting the application with the production profile and confirming the log reports only your
+  versioned migrations.</p>
+</div>
+
+<h2><span class="num">04</span>When a shared development database diverges</h2>
+
+<p>A shared development database accumulates manual changes, abandoned branches and partially
+applied migrations. Three settings address three distinct situations. Match the setting to the
+situation precisely.</p>
+
+<ul>
+  <li><strong>The database predates Flyway and already holds tables.</strong> Flyway reports
+  <code>Found non-empty schema(s) without schema history table</code>. Set
+  <code>spring.flyway.baseline-on-migrate=true</code> and
+  <code>baseline-version</code> to the version the existing schema represents. Flyway records the
+  baseline and applies only later migrations. Run this once, deliberately, then remove the
+  setting.</li>
+  <li><strong>A migration failed partway.</strong> Flyway reports <code>Detected failed
+  migration</code>. Fix the SQL, manually revert whatever the partial run left behind, then run
+  <code>repair</code> to remove the failed row. PostgreSQL runs DDL transactionally, so this is
+  rarer there than on MySQL.</li>
+  <li><strong>Someone edited an applied migration and the change is genuinely cosmetic.</strong>
+  Run <code>repair</code>. This is the only legitimate use of the command.</li>
+</ul>
+
+<div class="note">
+  <span class="label">Recommendation</span>
+  <p>Give every engineer a disposable local database and stop sharing one. A shared development
+  database creates a schema whose state depends on who ran what, which is the problem Flyway
+  exists to solve. Where a shared environment is unavoidable, rebuild it from empty on a schedule
+  and treat any manual change to it as a defect.</p>
+</div>
+
+<div class="note plain">
+  <span class="label">One default worth knowing</span>
+  <p>Spring Boot sets <code>spring.flyway.ignore-migration-patterns</code> to
+  <code>*:future</code>. Flyway therefore tolerates a database that holds migrations <em>newer</em>
+  than the files present — the state produced by rolling an application back without rolling back
+  its schema. Startup succeeds rather than failing, which is the behaviour you want during a
+  rollback.</p>
+</div>
+
+<h2><span class="num">05</span>Practices</h2>
+
+<ul>
+  <li><strong>Edit freely before merge; add a migration after.</strong> The boundary is the first
+  machine that is not yours.</li>
+  <li><strong>Rebuild from empty before opening a pull request.</strong> This catches a migration
+  that works only against your accumulated local state.</li>
+  <li><strong>Keep the reset to one command.</strong> Tedious resets produce hand-edited
+  databases.</li>
+  <li><strong>Separate seed data from schema by location, not by convention.</strong> A comment
+  saying "development only" will eventually run in production.</li>
+  <li><strong>Write every repeatable migration to be idempotent.</strong> Flyway re-runs it on
+  every checksum change.</li>
+  <li><strong>Treat <code>clean</code> and <code>repair</code> as incident tools.</strong> Neither
+  belongs in a daily loop. Rebuilding replaces both.</li>
+</ul>
+
+<hr>
+
+<h2><span class="num">06</span>Check yourself</h2>
+
+<div class="quiz">
+
+  <div class="q" data-answer="2">
+    <p class="stem">You wrote a migration this morning on an unmerged branch. May you edit the file?</p>
+    <button type="button">No, because the rule applies from first commit</button>
+    <button type="button">Yes, but only after running repair against it</button>
+    <button type="button">Yes, until that migration has run somewhere else</button>
+    <button type="button">No, unless you also bump its version number</button>
+    <p class="why" hidden>The rule protects databases you do not control. A migration that has run
+    only on your machine has no other history table recording its checksum, so editing it costs
+    nothing.</p>
+  </div>
+
+  <div class="q" data-answer="3">
+    <p class="stem">You edited that migration. Your local database still holds the old version. What is the correct next step?</p>
+    <button type="button">Run repair to rewrite the stored checksum value</button>
+    <button type="button">Set out-of-order to true in your properties file</button>
+    <button type="button">Rename the migration to the next free version</button>
+    <button type="button">Drop your local database and recreate it again</button>
+    <p class="why" hidden>Rebuilding applies the edited SQL from empty, matching what CI and every
+    fresh environment will do. <code>repair</code> only updates the checksum: the database keeps
+    the schema the old SQL produced while the history table claims otherwise.</p>
+  </div>
+
+  <div class="q" data-answer="0">
+    <p class="stem">What value does Spring Boot use for <code>spring.flyway.clean-disabled</code>?</p>
+    <button type="button">True, so Spring Boot blocks clean by default</button>
+    <button type="button">False, so clean runs whenever you request it</button>
+    <button type="button">True, though only when production profile is active</button>
+    <button type="button">False, and Spring Boot ignores this property fully</button>
+    <p class="why" hidden><code>FlywayProperties</code> declares
+    <code>private boolean cleanDisabled = true;</code>. Spring Boot blocks <code>clean</code> in
+    every profile until you set the property to <code>false</code> explicitly. Several third-party
+    articles state the opposite; they describe Flyway's standalone default, not Spring Boot's.</p>
+  </div>
+
+</div>
+
+<h2><span class="num">07</span>Read this next</h2>
+
+<p><strong><a href="https://documentation.red-gate.com/fd/flyway-clean-disabled-setting-277578981.html">Flyway Clean Disabled Setting</a></strong>
+— Redgate's documentation for <code>cleanDisabled</code>, including why the parameter exists.</p>
+
+<p>Return to <a href="0003-flyway-team-conflicts.html">Lesson 03</a> for the team-facing failures,
+and keep the <a href="../reference/flyway-cheatsheet.html">Flyway reference sheet</a> open while
+you work.</p>
+
+<div class="note">
+  <span class="label">Ask me</span>
+  <p>The natural next step is testing migrations against a real database with Testcontainers,
+  which removes the shared development database from the workflow entirely. Ask for that lesson
+  when you want it.</p>
+</div>
+
+<h2 id="sources"><span class="num">08</span>Sources</h2>
+
+<ol class="sources">
+  <li id="s1"><code>FlywayProperties.java</code> from <code>spring-boot-flyway-4.1.1-sources.jar</code>, read from Maven Central. Source of every default quoted here: <code>cleanDisabled=true</code>, <code>outOfOrder=false</code>, <code>baselineOnMigrate=false</code>, <code>validateOnMigrate=true</code>, <code>ignoreMigrationPatterns=["*:future"]</code>, <code>locations=["classpath:db/migration"]</code>.</li>
+  <li id="s2"><code>flyway-core-12.4.0.jar</code>, read from Maven Central. Source of the verbatim <code>Found non-empty schema</code> and <code>Detected failed migration</code> strings.</li>
+  <li id="s3"><a href="https://documentation.red-gate.com/fd/flyway-clean-disabled-setting-277578981.html">Redgate: Flyway clean disabled setting</a>.</li>
+  <li id="s4"><a href="https://documentation.red-gate.com/fd/">Redgate Flyway documentation</a>. Repeatable migrations, baseline and repair semantics.</li>
+</ol>
+
+<p class="next">
+  Lesson 04 · <a href="0003-flyway-team-conflicts.html">previous</a> ·
+  <a href="../index.html">workspace</a>
+</p>
+
+</main>
+
+<script src="../assets/quiz.js"></script>
+</body>
+</html>

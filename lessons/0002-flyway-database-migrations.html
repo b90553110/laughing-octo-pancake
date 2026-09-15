@@ -12,74 +12,73 @@
 <header class="masthead wrap">
   <p class="crumb"><a href="../index.html">Workspace</a> · Lesson 02</p>
   <h1>Database migrations with Flyway</h1>
-  <p class="standfirst">Your schema becomes something you version, review and deploy — like the rest of your code. Plus the one rule that keeps it that way.</p>
+  <p class="standfirst">Version the schema in your repository. Apply it in order, exactly once, on every environment.</p>
   <p class="meta-line">
     ~20 minutes · Spring Boot 4.1.1 · Flyway 12.4.0 · PostgreSQL<br>
-    Versions and behaviour checked against Maven Central and the current docs.
-    Unlike <a href="0001-spring-boot-maven-first-service.html">Lesson 01</a>, the code here
-    was not executed — you are the one running it. Tell me if anything does not match.
+    Versions, defaults and error strings verified against Maven Central artifacts.
+    I did not execute this code; you will.
   </p>
 </header>
 
 <main class="wrap">
 
-<p>Here is the problem, and you have probably already lived a version of it. Your app needs a
-new column. You add it to your entity class, and it works on your machine, because something
-helpfully altered your local database. Then it reaches staging, where nobody ran that, and the
-app either crashes or — worse — quietly does the wrong thing.</p>
+<p>A database schema is state. State that lives outside version control diverges between
+environments, and that divergence surfaces as a production failure no local test reproduces.</p>
 
-<p>The schema is state, and state that is not versioned is state that drifts. Flyway's answer is
-almost boringly simple: <strong>the schema is a sequence of SQL files, in your repository, applied
-in order, exactly once.</strong> That is the whole idea. Everything else is bookkeeping.</p>
+<p>Flyway eliminates the divergence with one constraint: <strong>the schema is an ordered
+sequence of SQL files in your repository, and Flyway applies each file exactly once per
+database.</strong> Your repository then describes the schema of every environment
+authoritatively.</p>
 
-<h2><span class="num">01</span>The mental model</h2>
+<h2><span class="num">01</span>The model</h2>
 
-<p>Flyway creates one extra table in your database, <code>flyway_schema_history</code>, and it is
-the entire trick. Every time a migration runs, Flyway writes a row:</p>
+<p>Flyway creates one table, <code>flyway_schema_history</code>, and derives every decision from
+it. Flyway inserts one row per applied migration:</p>
 
 <pre><code>rank | version | description        | checksum   | ok
 -----+---------+--------------------+------------+---
    1 | 1       | create users table | 1284759302 | t
    2 | 2       | add last login     | -839201847 | t</code></pre>
 
-<p>On every startup, Flyway reads that table and compares it against the migration files on your
-classpath. Three outcomes:</p>
+<p>At startup, Flyway reads that table, compares it against the migration files on the classpath,
+and takes one of three actions per file:</p>
 
 <ul>
-  <li><strong>A file it has no row for</strong> → run it, then record it.</li>
-  <li><strong>A file matching a row, same checksum</strong> → already done, skip it.</li>
-  <li><strong>A file matching a row, <em>different</em> checksum</strong> → stop. Refuse to start.</li>
+  <li><strong>No matching row</strong> — Flyway runs the file, then inserts a row.</li>
+  <li><strong>Matching row, identical checksum</strong> — Flyway skips the file.</li>
+  <li><strong>Matching row, different checksum</strong> — Flyway aborts startup.</li>
 </ul>
 
-<p>That third case is the one people fight with, and it is also the one doing the real work. Hold
-onto it; we come back to it in §06.</p>
+<p>The third action enforces the rule in §06. Every Flyway behaviour that surprises people
+follows from these three lines.</p>
 
 <div class="note plain">
-  <span class="label">Why this beats the alternative</span>
-  <p>Hibernate's <code>ddl-auto=update</code> can also make your schema match your entities. It
-  cannot tell you what it will do before it does it, cannot be reviewed in a pull request, and
-  cannot express anything that is not derivable from entity classes — backfills, index strategy,
-  a two-step column rename. It is a development convenience that has taken down production.</p>
+  <span class="label">Why not ddl-auto=update</span>
+  <p>Hibernate's <code>spring.jpa.hibernate.ddl-auto=update</code> also reconciles the schema to
+  your entity classes. Reject it for three specific reasons: it produces no artifact you can
+  review before it runs, it cannot express changes that do not derive from entity classes
+  (data backfills, index type and concurrency, multi-step column renames), and it records
+  nothing about what it changed.</p>
 </div>
 
-<h2><span class="num">02</span>Add it to the build</h2>
+<h2><span class="num">02</span>Add the dependencies</h2>
 
-<p>Two dependencies, and <em>both</em> of them are places people get stuck on current versions:</p>
+<p>Add four dependencies. Two of them trip people on current versions.</p>
 
 <div class="filename">pom.xml — inside &lt;dependencies&gt;</div>
-<pre><code>&lt;!-- Boot 4: the STARTER, not flyway-core on its own --&gt;
+<pre><code>&lt;!-- Spring Boot 4: the STARTER. flyway-core alone does nothing. --&gt;
 &lt;dependency&gt;
   &lt;groupId&gt;org.springframework.boot&lt;/groupId&gt;
   &lt;artifactId&gt;spring-boot-starter-flyway&lt;/artifactId&gt;
 &lt;/dependency&gt;
 
-&lt;!-- Flyway 10+: your database&#x27;s support module, separately --&gt;
+&lt;!-- Flyway 10+: your database&#x27;s support module, added separately --&gt;
 &lt;dependency&gt;
   &lt;groupId&gt;org.flywaydb&lt;/groupId&gt;
   &lt;artifactId&gt;flyway-database-postgresql&lt;/artifactId&gt;
 &lt;/dependency&gt;
 
-&lt;!-- And a JDBC driver + JDBC support, as usual --&gt;
+&lt;!-- JDBC support and a driver --&gt;
 &lt;dependency&gt;
   &lt;groupId&gt;org.springframework.boot&lt;/groupId&gt;
   &lt;artifactId&gt;spring-boot-starter-data-jpa&lt;/artifactId&gt;
@@ -92,42 +91,43 @@ onto it; we come back to it in §06.</p>
 
 <div class="note">
   <span class="label">Trap 1 · Spring Boot 4</span>
-  <p>In Boot 3 you added <code>flyway-core</code> and auto-configuration picked it up. <strong>In
-  Boot 4 that is no longer enough</strong> — you need <code>spring-boot-starter-flyway</code>.
-  The failure mode is nasty: nothing errors, your app starts happily, and no migrations run. If
-  you are following a tutorial written for Boot 3 and your tables never appear, this is why.</p>
+  <p>Spring Boot 3 auto-configured Flyway from <code>flyway-core</code>. <strong>Spring Boot 4
+  requires <code>spring-boot-starter-flyway</code>.</strong> With <code>flyway-core</code> alone,
+  Boot 4 starts the application normally, runs no migrations, and logs no error. Diagnose this
+  failure by its signature: the application starts, and the tables do not exist.</p>
 </div>
 
 <div class="note">
-  <span class="label">Trap 2 · Flyway 10+</span>
-  <p>Database support was split out of <code>flyway-core</code> into per-database modules. Without
-  the right one you get <code>Unsupported Database: PostgreSQL 16.2</code> at startup. The module
-  names are <em>not</em> consistent, which catches everyone:</p>
+  <span class="label">Trap 2 · Flyway 10 and later</span>
+  <p>Flyway 10 moved database support out of <code>flyway-core</code> into per-database modules.
+  Omit the correct module and Flyway aborts startup with <code>Unsupported Database</code>. The
+  artifact names are inconsistent:</p>
   <ul>
-    <li>PostgreSQL → <code>flyway-database-postgresql</code></li>
-    <li>Oracle → <code>flyway-database-oracle</code></li>
-    <li>MySQL → <code>flyway-mysql</code> <em>(no "database")</em></li>
-    <li>SQL Server → <code>flyway-sqlserver</code> <em>(no "database")</em></li>
+    <li>PostgreSQL — <code>flyway-database-postgresql</code></li>
+    <li>Oracle — <code>flyway-database-oracle</code></li>
+    <li>MySQL and MariaDB — <code>flyway-mysql</code> (no "database" segment)</li>
+    <li>SQL Server — <code>flyway-sqlserver</code> (no "database" segment)</li>
   </ul>
-  <p>H2 and SQLite need no module, which is why so many tutorials never mention this.</p>
+  <p>H2 and SQLite require no module, which is why tutorials that demonstrate against H2 never
+  mention this.</p>
 </div>
 
-<p>Note that neither dependency carries a <code>&lt;version&gt;</code> — the same inheritance from
-<a href="0001-spring-boot-maven-first-service.html#s1">Lesson 01</a> is at work. Spring Boot 4.1.1
-manages <strong>Flyway 12.4.0</strong>, and every Flyway module is in its dependency list.</p>
+<p>Neither Flyway dependency declares a <code>&lt;version&gt;</code>. The parent POM from
+<a href="0001-spring-boot-maven-first-service.html">Lesson 01</a> manages both. Spring Boot 4.1.1
+manages <strong>Flyway 12.4.0</strong> and lists every Flyway database module.</p>
 
 <div class="note">
-  <span class="label">Tech lead note</span>
-  <p>Flyway's own latest release is 13.5.0, ahead of the 12.4.0 Boot manages. Resist the urge to
-  pin it up. Boot's managed version is the one its auto-configuration was tested against, and
-  Flyway's major versions have moved things before. Upgrade the whole Boot version deliberately;
-  do not cherry-pick one library out of a tested set.</p>
+  <span class="label">Recommendation</span>
+  <p>Flyway's current standalone release is 13.5.0, ahead of the 12.4.0 that Spring Boot 4.1.1
+  manages. Do not override the managed version. Spring Boot tests its auto-configuration against
+  the version it manages, and Flyway has relocated classes across major versions before. Upgrade
+  the Spring Boot version deliberately instead of raising one library out of a tested set.</p>
 </div>
 
-<h2><span class="num">03</span>Write your first migration</h2>
+<h2><span class="num">03</span>Write the first migration</h2>
 
-<p>Migrations live in <code>src/main/resources/db/migration</code> — that is the default, and
-there is rarely a good reason to change it.</p>
+<p>Flyway reads migrations from <code>classpath:db/migration</code> by default. Keep that
+location.</p>
 
 <pre><code>src/main/resources/
 └── db/
@@ -136,139 +136,136 @@ there is rarely a good reason to change it.</p>
         ├── V2__add_users_last_login.sql
         └── V3__create_orders_table.sql</code></pre>
 
-<p>The filename is not decoration. Flyway parses it:</p>
+<p>Flyway parses the filename. Each segment carries meaning:</p>
 
 <pre><code>V2__add_users_last_login.sql
-│ │  └── description: underscores show as spaces
-│ └──── version: sorts numerically, not as text
-└────── prefix: V = versioned, runs exactly once
+│ │  └── description: underscores render as spaces
+│ └──── version: Flyway sorts numerically, not as text
+└────── prefix: V marks a versioned migration
 
-Two underscores between version and description.</code></pre>
+Two underscores separate version from description.</code></pre>
 
 <div class="filename">src/main/resources/db/migration/V1__create_users_table.sql</div>
 <pre><code>-- V1__create_users_table.sql
 
 CREATE TABLE users (
-    id          BIGSERIAL PRIMARY KEY,
-    email       VARCHAR(255) NOT NULL UNIQUE,
+    id           BIGSERIAL PRIMARY KEY,
+    email        VARCHAR(255) NOT NULL UNIQUE,
     display_name VARCHAR(100) NOT NULL,
-    created_at  TIMESTAMPTZ  NOT NULL DEFAULT now()
+    created_at   TIMESTAMPTZ  NOT NULL DEFAULT now()
 );
 
 CREATE INDEX idx_users_email ON users (email);</code></pre>
 
-<p>It is plain SQL for your database. No abstraction layer, no DSL — which means you can use
-anything your database can do, and you own the portability question yourself.</p>
+<p>Flyway executes this file as plain SQL against your database. It applies no abstraction layer,
+so you can use any feature your database supports, and you own every portability decision.</p>
 
-<h2><span class="num">04</span>Point it at a database</h2>
+<h2><span class="num">04</span>Configure the datasource</h2>
 
 <div class="filename">src/main/resources/application.properties</div>
 <pre><code>spring.datasource.url=jdbc:postgresql://localhost:5432/demo
 spring.datasource.username=demo
 spring.datasource.password=demo
 
-# Let Flyway own the schema; Hibernate must not touch it.
+# Flyway owns the schema. Hibernate verifies it and changes nothing.
 spring.jpa.hibernate.ddl-auto=validate</code></pre>
 
-<p>Flyway needs no configuration of its own here — it uses the <code>DataSource</code> Spring
-already built. Only that last line is a decision:</p>
+<p>Flyway requires no configuration of its own here. It uses the <code>DataSource</code> that
+Spring already builds. Only the last line represents a decision.</p>
 
 <div class="note">
-  <span class="label">Tech lead note</span>
-  <p><code>ddl-auto=validate</code> tells Hibernate to <em>check</em> the schema matches your
-  entities and fail loudly if not, rather than altering anything. That is the setting you want the
-  moment Flyway exists: one system owns the schema, and the other verifies it. Two systems both
-  trying to own it is how you get a schema nobody can reason about. If you see
-  <code>ddl-auto=update</code> in a pull request on a project with migrations, block it.</p>
+  <span class="label">Recommendation</span>
+  <p>Set <code>ddl-auto=validate</code> the moment you adopt Flyway. Hibernate then compares the
+  schema against your entities and fails startup on a mismatch, but alters nothing. One component
+  owns the schema and the other verifies it. Two components that both modify the schema produce a
+  database whose shape no one can predict. Reject <code>ddl-auto=update</code> in review on any
+  project that runs migrations.</p>
 </div>
 
 <h2><span class="num">05</span>Run it</h2>
 
-<p>Just start the app — <code>./mvnw spring-boot:run</code>. Migrations run <em>before</em> the
-rest of the context comes up, so your app never sees a half-migrated database:</p>
+<p>Start the application with <code>./mvnw spring-boot:run</code>. Flyway runs before the rest of
+the application context initialises, so your code never observes a partially migrated database:</p>
 
 <pre><code>Flyway Community Edition 12.4.0 by Redgate
 Database: jdbc:postgresql://localhost:5432/demo (PostgreSQL 16.2)
 Successfully validated 2 migrations (execution time 00:00.031s)
 Migrating schema &quot;public&quot; to version &quot;1 - create users table&quot;
-Migrating schema &quot;public&quot; to version &quot;2 - add users last login&quot;
+Migrating schema &quot;public&quot; to version &quot;2 - add last login&quot;
 Successfully applied 2 migrations (execution time 00:00.094s)</code></pre>
 
-<p>Start it again and Flyway will report validating 2 migrations and applying none. That is
-idempotency: the same command is safe to run on an empty database, your laptop's database, and
-production, and it does the right thing in each case.</p>
+<p>Start the application a second time. Flyway validates two migrations and applies none. The same
+command therefore produces the correct result against an empty database, your local database and
+production.</p>
 
 <div class="task">
   <span class="label">Do this</span>
-  <p>Add a second migration and restart:</p>
+  <p>Add a second migration, then restart:</p>
   <div class="filename">V2__add_users_last_login.sql</div>
   <pre><code>-- V2__add_users_last_login.sql
 
 ALTER TABLE users ADD COLUMN last_login_at TIMESTAMPTZ;</code></pre>
-  <p>Then look at the history table directly:</p>
+  <p>Then query the history table directly:</p>
   <pre><code>SELECT version, description, success FROM flyway_schema_history;</code></pre>
-  <p>Seeing your own two rows in there is the moment the model clicks.</p>
 </div>
 
-<h2><span class="num">06</span>The one rule</h2>
-
-<p>Here is the rule the whole tool rests on:</p>
+<h2><span class="num">06</span>The rule</h2>
 
 <div class="note">
-  <span class="label">Never</span>
-  <p><strong>Never edit a migration that has been applied anywhere but your own machine.</strong>
-  To change something, write a new migration.</p>
+  <span class="label">Rule</span>
+  <p><strong>Never modify a migration that has run on any machine other than your own.</strong>
+  To change the schema, add a new migration.</p>
 </div>
 
-<p>Break it and you get the third case from §01 — the checksum in the database no longer matches
-the file, and the app refuses to start:</p>
+<p>Violate the rule and you trigger the third action from §01. The checksum Flyway recorded no
+longer matches the file, so Flyway aborts startup:</p>
 
-<pre><code>Migration checksum mismatch for migration version 1
+<pre><code>Validate failed: Migrations have failed validation
+Migration checksum mismatch for migration version 1
 -&gt; Applied to database : 1284759302
--&gt; Resolved locally    : 1902847361
+-&gt; Resolved locally    : 1902847361</code></pre>
 
-Either revert the changes to the migration,
-or run repair to update the schema history.</code></pre>
-
-<p>This error is Flyway working correctly. It is telling you that a machine somewhere ran SQL that
-no longer exists in your repository, so your repository can no longer tell you what that database
-contains. Two ways out, and they are not equal:</p>
+<p>Flyway is behaving correctly here. The error states that some database ran SQL that your
+repository no longer contains, so your repository can no longer describe that database. Two
+responses exist, and they are not equivalent:</p>
 
 <ul>
-  <li><strong>Revert the file</strong> to what was actually applied, and put your change in a new
-  migration. This is nearly always right.</li>
-  <li><strong><code>flyway repair</code></strong> rewrites the stored checksums to match your
-  files. Legitimate only when you are certain the <em>SQL logic</em> did not change — a fixed
-  comment, a whitespace tidy. Used on a real change, it does not fix anything; it hides the
-  mismatch and leaves the database and repository silently disagreeing.</li>
+  <li><strong>Revert the file</strong> to the version Flyway applied, then put your change in a
+  new migration. Choose this in almost every case.</li>
+  <li><strong>Run <code>flyway repair</code></strong>, which overwrites the stored checksums with
+  the checksums of your current files. This is correct only when the SQL logic did not change —
+  a corrected comment, reformatted whitespace. Run it after a logic change and it resolves
+  nothing: it records agreement between a database and a repository that still disagree.</li>
 </ul>
 
 <div class="note">
-  <span class="label">Tech lead note</span>
-  <p>When someone reaches for <code>repair</code>, my question is always the same: <em>what
-  actually changed in that file?</em> If the answer takes more than one sentence, revert and write
-  a new migration. "It's just a small fix" is how a staging database and a production database stop
-  being the same shape.</p>
+  <span class="label">In review</span>
+  <p>When an engineer proposes <code>repair</code>, ask exactly what changed in the file. If the
+  answer requires more than one sentence, reject <code>repair</code> and require a new migration.
+  Small undocumented edits to applied migrations are how a staging database and a production
+  database stop sharing a shape.</p>
 </div>
 
-<h2><span class="num">07</span>What I look for in review</h2>
+<h2><span class="num">07</span>What to check in review</h2>
 
-<p>You asked to be taught as a lead, so here is the checklist I actually apply to a migration:</p>
+<p>Apply this checklist to every migration:</p>
 
 <ul>
-  <li><strong>Is it backwards compatible with the currently deployed code?</strong> During a rolling
-  deploy, old and new application versions run against the same database at once. Dropping a column
-  the old version still selects breaks it mid-deploy. Renames become
-  add → backfill → dual-write → drop, across several releases.</li>
-  <li><strong>Will it lock a large table?</strong> Adding an index on a big table can hold a lock
-  long enough to be an outage. PostgreSQL has <code>CREATE INDEX CONCURRENTLY</code>; know your
-  database's equivalent.</li>
-  <li><strong>Is anything irreversible?</strong> A <code>DROP COLUMN</code> is a data deletion with
-  no undo in the free edition. Justify it, or postpone it to a later cleanup migration.</li>
-  <li><strong>Is it one logical change?</strong> Small migrations fail in ways you can understand.</li>
-  <li><strong>Is the version number going to collide?</strong> Two branches both adding
-  <code>V7__</code> merge cleanly in git and then fight at startup. Some teams use timestamps
-  (<code>V20260910143000__</code>) for exactly this reason.</li>
+  <li><strong>Compatibility with the deployed application version.</strong> During a rolling
+  deploy, the old and new application versions run against the same database simultaneously.
+  Dropping a column that the old version still selects breaks it mid-deploy. A rename therefore
+  requires four steps across separate releases: add, backfill, dual-write, drop.</li>
+  <li><strong>Lock duration on large tables.</strong> Creating an index can hold a lock long
+  enough to constitute an outage. PostgreSQL offers <code>CREATE INDEX CONCURRENTLY</code>;
+  identify your database's equivalent before you need it.</li>
+  <li><strong>Irreversible operations.</strong> <code>DROP COLUMN</code> deletes data and the
+  Community edition provides no undo. Require justification, or defer the drop to a later
+  cleanup migration.</li>
+  <li><strong>Scope.</strong> One logical change per migration. Small migrations fail in ways you
+  can diagnose.</li>
+  <li><strong>Version collisions.</strong> Two branches that both add <code>V7__</code> merge
+  cleanly in Git and then fail at startup.
+  <a href="0003-flyway-team-conflicts.html">Lesson 03</a> covers this case in full.</li>
 </ul>
 
 <hr>
@@ -278,35 +275,35 @@ contains. Two ways out, and they are not equal:</p>
 <div class="quiz">
 
   <div class="q" data-answer="1">
-    <p class="stem">What does Flyway keep in <code>flyway_schema_history</code>?</p>
+    <p class="stem">What does Flyway store in <code>flyway_schema_history</code>?</p>
     <button type="button">A complete snapshot of every table you altered</button>
     <button type="button">Which migrations ran, plus a checksum of each</button>
     <button type="button">The current schema, rebuilt on each app startup</button>
     <button type="button">Each SQL statement your application has ever issued</button>
-    <p class="why" hidden>One row per applied migration, with a checksum of the file's contents.
-    That checksum is what lets Flyway detect a migration being changed after the fact.</p>
+    <p class="why" hidden>Flyway stores one row per applied migration, including a checksum of the
+    file. That checksum lets Flyway detect a modification to a migration it already applied.</p>
   </div>
 
   <div class="q" data-answer="3">
-    <p class="stem">A teammate fixes a typo in <code>V1__create_users_table.sql</code>, already applied in staging. What happens there?</p>
-    <button type="button">The edited migration is applied again on startup</button>
+    <p class="stem">An engineer corrects a typo in <code>V1__create_users_table.sql</code>, which staging already applied. What happens at the next staging startup?</p>
+    <button type="button">Flyway applies the edited migration again on startup</button>
     <button type="button">Nothing, as Flyway only checks the version number</button>
-    <button type="button">The file is quietly rewritten to match production</button>
+    <button type="button">Flyway quietly rewrites the file to match production</button>
     <button type="button">Startup fails: the stored checksum no longer matches</button>
-    <p class="why" hidden>Validation compares the file against the recorded checksum and refuses to
-    start. Correct fix: revert the file and write <code>V2__</code>. Reach for
-    <code>repair</code> only if you are certain no SQL logic changed.</p>
+    <p class="why" hidden>Flyway compares the file against the recorded checksum and aborts.
+    Correct response: revert the file and add <code>V2__</code>. Use <code>repair</code> only
+    when you are certain the SQL logic did not change.</p>
   </div>
 
   <div class="q" data-answer="0">
-    <p class="stem">On Spring Boot 4 you add <code>flyway-core</code> and your migrations never run — no errors. Why?</p>
+    <p class="stem">On Spring Boot 4 you declare <code>flyway-core</code>, and no migration runs. No error appears. Why?</p>
     <button type="button">Boot 4 needs the starter to auto-configure it</button>
     <button type="button">Boot 4 has dropped support for Flyway entirely</button>
     <button type="button">Boot 4 runs migrations only within test scope</button>
     <button type="button">Boot 4 needs migrations named a different way</button>
-    <p class="why" hidden>Boot 4 auto-configures Flyway from
-    <code>spring-boot-starter-flyway</code>, not from <code>flyway-core</code> alone. The silence
-    is what makes it expensive: nothing fails, the tables just are not there.</p>
+    <p class="why" hidden>Spring Boot 4 auto-configures Flyway from
+    <code>spring-boot-starter-flyway</code>, not from <code>flyway-core</code>. The silence makes
+    this expensive to diagnose: nothing fails, and the tables simply do not exist.</p>
   </div>
 
 </div>
@@ -314,34 +311,36 @@ contains. Two ways out, and they are not equal:</p>
 <h2><span class="num">09</span>Read this next</h2>
 
 <p><strong><a href="https://documentation.red-gate.com/fd/quickstart-how-flyway-works-184127223.html">How Flyway Works</a></strong>
-— Redgate's own explanation of the migration lifecycle and the history table. Short, and it is the
-maintainers' description rather than a blogger's.</p>
+— Redgate's description of the migration lifecycle and the history table. Read the maintainers'
+account before any third-party tutorial.</p>
 
-<p>Keep the <a href="../reference/flyway-cheatsheet.html">Flyway reference sheet</a> next to you
-while you write your first few migrations.</p>
+<p>Continue with <a href="0003-flyway-team-conflicts.html">Lesson 03: version conflicts across a
+team</a> and <a href="0004-flyway-development-workflow.html">Lesson 04: iterating on migrations in
+development</a>. Keep the <a href="../reference/flyway-cheatsheet.html">Flyway reference sheet</a>
+open while you write migrations.</p>
 
 <div class="note">
   <span class="label">Ask me</span>
-  <p>The genuinely hard part of this topic is not Flyway, it is <em>migration design</em> —
-  changing a live schema without downtime. If you want to go there, ask, and we will do the
-  add/backfill/dual-write/drop dance on a real example. Also worth asking about: how to test
-  migrations, and whether Testcontainers is worth it for you.</p>
+  <p>Migration design on a live schema is harder than Flyway itself. Ask for the
+  add/backfill/dual-write/drop sequence on a concrete example, or for how to test migrations
+  against a real database. If any output on your machine differs from this lesson, report it —
+  I will correct the file.</p>
 </div>
 
 <h2 id="sources"><span class="num">10</span>Sources</h2>
 
 <ol class="sources">
-  <li id="s1"><a href="https://documentation.red-gate.com/fd/">Redgate Flyway documentation</a>. Migration naming, validation, and the repair command.</li>
-  <li id="s2"><a href="https://documentation.red-gate.com/fd/postgresql-database-277579325.html">Flyway: PostgreSQL support</a>. Confirms the separate <code>flyway-database-postgresql</code> module.</li>
-  <li id="s3"><a href="https://docs.spring.io/spring-boot/how-to/data-initialization.html">Spring Boot: database initialization</a>. <code>spring.flyway.*</code> properties and defaults.</li>
-  <li id="s4"><a href="https://mvnrepository.com/artifact/org.springframework.boot/spring-boot-starter-flyway">spring-boot-starter-flyway on Maven Central</a>. Confirms the Boot 4 starter and its versions.</li>
-  <li id="s5">Spring Boot 4.1.1 dependency list (<code>spring-boot-dependencies-4.1.1.pom</code>), read directly from Maven Central: <code>flyway.version</code> is 12.4.0, and every Flyway database module is version-managed there.</li>
+  <li id="s1"><a href="https://documentation.red-gate.com/fd/">Redgate Flyway documentation</a>. Migration naming, validation and the repair command.</li>
+  <li id="s2"><a href="https://documentation.red-gate.com/fd/postgresql-database-277579325.html">Flyway PostgreSQL support</a>. The separate <code>flyway-database-postgresql</code> module.</li>
+  <li id="s3"><a href="https://mvnrepository.com/artifact/org.springframework.boot/spring-boot-starter-flyway">spring-boot-starter-flyway on Maven Central</a>. Confirms the Spring Boot 4 starter.</li>
+  <li id="s4">Spring Boot 4.1.1 dependency list (<code>spring-boot-dependencies-4.1.1.pom</code>), read from Maven Central: <code>flyway.version</code> is 12.4.0.</li>
+  <li id="s5"><code>flyway-core-12.4.0.jar</code>, read from Maven Central. Source of the verbatim error strings quoted above.</li>
 </ol>
 
 <p class="next">
-  Lesson 02 · <a href="0001-spring-boot-maven-first-service.html">previous lesson</a> ·
-  <a href="../index.html">workspace</a><br>
-  Still owed from Lesson 01: what a <em>bean</em> actually is, and why constructor injection wins.
+  Lesson 02 · <a href="0001-spring-boot-maven-first-service.html">previous</a> ·
+  <a href="0003-flyway-team-conflicts.html">next</a> ·
+  <a href="../index.html">workspace</a>
 </p>
 
 </main>

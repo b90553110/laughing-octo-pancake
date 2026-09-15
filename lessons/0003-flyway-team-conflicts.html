@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Lesson 3 · Flyway conflicts across a team</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔀</text></svg>">
+  <link rel="stylesheet" href="../assets/lesson.css">
+</head>
+<body>
+
+<header class="masthead wrap">
+  <p class="crumb"><a href="../index.html">Workspace</a> · Lesson 03</p>
+  <h1>Flyway conflicts across a team</h1>
+  <p class="standfirst">Two branches, two migrations, one version number. Git merges them without complaint; Flyway does not.</p>
+  <p class="meta-line">
+    ~20 minutes · Flyway 12.4.0 · Spring Boot 4.1.1<br>
+    Error strings quoted verbatim from <code>flyway-core-12.4.0.jar</code>. I did not execute this code.
+  </p>
+</header>
+
+<main class="wrap">
+
+<p><a href="0002-flyway-database-migrations.html">Lesson 02</a> covered a single engineer applying
+migrations in sequence. Add a second engineer and a new class of failure appears, because Git and
+Flyway disagree about what a conflict is.</p>
+
+<p>Git detects conflicts within a file. Two branches that each add a <em>different</em> file merge
+cleanly, even when those files carry the same Flyway version. Flyway then rejects the result. The
+failure therefore never appears in the pull request; it appears on the branch that merged second,
+after both reviews passed.</p>
+
+<h2><span class="num">01</span>Failure one: duplicate versions</h2>
+
+<p>Two engineers branch from <code>main</code> at version 6. Each adds <code>V7__</code>. Both pull
+requests pass review and merge. The next startup fails:</p>
+
+<pre><code>Found more than one migration with version 7
+Offenders:
+-&gt; .../db/migration/V7__add_orders_status.sql (SQL)
+-&gt; .../db/migration/V7__add_users_phone.sql (SQL)</code></pre>
+
+<p>Flyway refuses to guess an order. It applied nothing and corrupted nothing; the build
+simply stops until an engineer assigns the versions.</p>
+
+<div class="task">
+  <span class="label">Resolve it</span>
+  <ol>
+    <li>Identify which migration already ran anywhere outside a local machine. Renumber the other
+    one.</li>
+    <li>Rename the unapplied file to the next free version:
+    <code>V7__add_users_phone.sql</code> → <code>V8__add_users_phone.sql</code>.</li>
+    <li>Drop and recreate your local database, then start the application. Confirm Flyway applies
+    the full sequence from empty.</li>
+  </ol>
+  <p><strong>Never renumber a migration that has already run on a shared environment.</strong>
+  Renaming the file changes neither the checksum nor the recorded version, so Flyway will report a
+  migration it applied but can no longer resolve.</p>
+</div>
+
+<h2><span class="num">02</span>Failure two: out-of-order arrivals</h2>
+
+<p>This case is quieter and more dangerous. Engineer A merges <code>V8__</code> on Monday, and
+every developer database and staging applies it. Engineer B, still on a branch cut last week,
+merges <code>V7__</code> on Tuesday. Databases now hold version 8 but not version 7:</p>
+
+<pre><code>Validate failed: Migrations have failed validation
+Detected resolved migration not applied to database: 7</code></pre>
+
+<p>Flyway refuses to apply version 7 after version 8 because <code>spring.flyway.out-of-order</code>
+defaults to <code>false</code>. That default is correct, and here is the precise reason: if Flyway
+applied version 7 late on some databases and in sequence on others, the two databases ran the same
+migrations in different orders. Any migration whose result depends on preceding state — a backfill,
+a constraint added to data another migration wrote — then produces different results per
+environment.</p>
+
+<div class="note">
+  <span class="label">Recommendation</span>
+  <p>Leave <code>out-of-order</code> at <code>false</code> in every environment. Renumber the late
+  migration to the next free version instead, which restores a single global order. Enable
+  <code>out-of-order</code> only on a disposable local database, and only to avoid rebuilding it
+  during exploratory work.</p>
+</div>
+
+<h2><span class="num">03</span>Eliminate the collision instead</h2>
+
+<p>Both failures share one cause: sequential integers force every branch to guess the same next
+number. Three naming schemes exist. Choose by team size.</p>
+
+<ul>
+  <li><strong>Sequential integers</strong> (<code>V7__</code>) — readable, and adequate for one or
+  two engineers who merge frequently. Collides constantly beyond that.</li>
+  <li><strong>UTC timestamps</strong> (<code>V20260915103000__</code>) — collisions require two
+  engineers to create a migration in the same second. Ordering follows creation time rather than
+  merge time, which remains correct because migrations that touch unrelated tables commute.</li>
+  <li><strong>Timestamp plus ticket</strong> (<code>V20260915103000__PROJ_412_add_phone.sql</code>)
+  — adds traceability from schema change to the work that required it.</li>
+</ul>
+
+<pre><code>V20260915103000__add_users_phone.sql
+V20260915141500__add_orders_status.sql
+ └── UTC timestamp: year month day hour minute second</code></pre>
+
+<div class="note">
+  <span class="label">Recommendation</span>
+  <p>Adopt UTC timestamps on any team of three or more. The cost is unreadable version numbers.
+  The benefit is that the duplicate-version failure becomes impossible, which removes an entire
+  category of broken builds on <code>main</code>. Decide once and enforce it in CI; a repository
+  that mixes both schemes gets the drawbacks of each.</p>
+</div>
+
+<h2><span class="num">04</span>Enforce the rules in CI</h2>
+
+<p>Every rule in this lesson and in Lesson 02 is mechanically checkable. Check them in CI, because
+review will not catch a version collision — each pull request is individually correct.</p>
+
+<h3>Check 1: migrations apply to an empty database</h3>
+
+<p>Run the full sequence against a clean database on every pull request. This single check proves
+more than the other two combined, because it executes the SQL rather than inspecting filenames.</p>
+
+<div class="filename">CI job, abbreviated</div>
+<pre><code># Apply every migration to an empty database.
+# This is the only check that proves the sequence works.
+services:
+  postgres:
+    image: postgres:16
+    env:
+      POSTGRES_PASSWORD: ci
+steps:
+  - run: ./mvnw flyway:migrate -Dflyway.url=jdbc:postgresql://postgres:5432/ci</code></pre>
+
+<h3>Check 2: no duplicate versions</h3>
+
+<div class="filename">ci/check-duplicate-versions.sh</div>
+<pre><code>#!/usr/bin/env bash
+# Fail when two migrations share a version.
+set -euo pipefail
+
+dupes=$(ls src/main/resources/db/migration/V*__*.sql \
+        | sed -E &#x27;s|.*/V([0-9.]+)__.*|\1|&#x27; \
+        | sort | uniq -d)
+
+if [ -n &quot;$dupes&quot; ]; then
+  echo &quot;Duplicate migration versions: $dupes&quot; &gt;&amp;2
+  exit 1
+fi</code></pre>
+
+<h3>Check 3: no modification of existing migrations</h3>
+
+<p>This check enforces the rule from Lesson 02 §06 mechanically, which matters because the cost of
+violating it lands on whoever deploys next rather than on the author.</p>
+
+<div class="filename">ci/check-migrations-immutable.sh</div>
+<pre><code>#!/usr/bin/env bash
+# Fail when a PR modifies or deletes an existing migration.
+set -euo pipefail
+
+changed=$(git diff --name-status &quot;origin/main...HEAD&quot; \
+          -- src/main/resources/db/migration \
+          | grep -E &#x27;^[MDR]&#x27; || true)
+
+if [ -n &quot;$changed&quot; ]; then
+  echo &quot;Existing migrations modified or deleted:&quot; &gt;&amp;2
+  echo &quot;$changed&quot; &gt;&amp;2
+  exit 1
+fi</code></pre>
+
+<div class="note plain">
+  <span class="label">One exception to check 3</span>
+  <p>A migration added and modified within the same unmerged pull request has run nowhere shared,
+  so editing it is correct. Compare against the merge base, as the script above does, rather than
+  against the previous commit.</p>
+</div>
+
+<h2><span class="num">05</span>Practices for a team</h2>
+
+<ul>
+  <li><strong>One migration per pull request</strong> wherever possible. Two migrations in one
+  branch raise the odds of a collision and complicate renumbering.</li>
+  <li><strong>Create the migration late.</strong> A migration written on day one of a two-week
+  branch has two weeks to collide. Write the schema change when the code needs it.</li>
+  <li><strong>Rebuild your local database after merging <code>main</code>.</strong> A local
+  database that applied your branch's migration before <code>main</code>'s produces a local
+  ordering that exists nowhere else.</li>
+  <li><strong>Deploy migrations ahead of the code that requires them</strong>, in a separate
+  release. The schema then already supports the new code when it deploys, and a rollback of the
+  code needs no rollback of the schema.</li>
+  <li><strong>Never resolve a Flyway conflict with <code>repair</code>.</strong> Repair addresses
+  checksum disagreement, not ordering or duplication. Reaching for it here hides the problem.</li>
+  <li><strong>Grant production migration rights to the deploy pipeline, not to engineers.</strong>
+  Manual application on a shared environment produces history rows that no repository explains.</li>
+</ul>
+
+<hr>
+
+<h2><span class="num">06</span>Check yourself</h2>
+
+<div class="quiz">
+
+  <div class="q" data-answer="1">
+    <p class="stem">Two branches each add a different <code>V7__</code> file. Git merges both cleanly. What does Flyway do at the next startup?</p>
+    <button type="button">Applies both files, ordered by their file names</button>
+    <button type="button">Aborts startup, reporting a duplicate version 7 file</button>
+    <button type="button">Applies the earlier file and skips the second</button>
+    <button type="button">Renumbers the later file and applies both files</button>
+    <p class="why" hidden>Flyway reports <code>Found more than one migration with version 7</code>
+    and stops. It applies nothing and corrupts nothing. Renumber the migration that has not yet
+    run on a shared environment.</p>
+  </div>
+
+  <div class="q" data-answer="0">
+    <p class="stem">Your database is at version 8. Someone merges a <code>V7__</code> from an older branch. With default settings, what happens?</p>
+    <button type="button">Validation fails: a resolved migration is not applied</button>
+    <button type="button">Flyway applies it immediately after the later ones</button>
+    <button type="button">Flyway rewrites the history table to include it</button>
+    <button type="button">Nothing happens until someone next edits that file</button>
+    <p class="why" hidden><code>out-of-order</code> defaults to <code>false</code>, so Flyway
+    reports <code>Detected resolved migration not applied to database: 7</code>. Renumber version
+    7 to the next free version rather than enabling out-of-order execution.</p>
+  </div>
+
+  <div class="q" data-answer="0">
+    <p class="stem">Which CI check gives the most confidence in a migration?</p>
+    <button type="button">Run every migration against a known empty database</button>
+    <button type="button">Run the application once against real staging data</button>
+    <button type="button">Compare the history tables of two live environments</button>
+    <button type="button">Check that every migration file contains valid SQL</button>
+    <p class="why" hidden>Applying the full sequence from empty executes the SQL and proves the
+    ordering. Filename and parse checks inspect text only; they cannot detect a migration that
+    references a column a later migration creates.</p>
+  </div>
+
+</div>
+
+<h2><span class="num">07</span>Read this next</h2>
+
+<p><strong><a href="https://www.red-gate.com/hub/product-learning/flyway/how-to-fix-or-avoid-ignored-migrations-in-flyway">How to Fix or Avoid 'Ignored' Migrations in Flyway</a></strong>
+— Redgate's treatment of out-of-order arrivals, including the <code>ignoreMigrationPatterns</code>
+settings this lesson deliberately avoids.</p>
+
+<p>Continue with <a href="0004-flyway-development-workflow.html">Lesson 04</a>, which covers the
+opposite problem: changing your own migration repeatedly before anyone else sees it.</p>
+
+<div class="note">
+  <span class="label">Ask me</span>
+  <p>Ask for a concrete renumbering walkthrough if your team hits a collision, or for a review of
+  a migration you are about to merge. Both are better uses of my time than another lesson.</p>
+</div>
+
+<h2 id="sources"><span class="num">08</span>Sources</h2>
+
+<ol class="sources">
+  <li id="s1"><code>flyway-core-12.4.0.jar</code>, read from Maven Central. Source of <code>Found more than one migration with version</code> and <code>Detected resolved migration not applied to database</code>, quoted verbatim.</li>
+  <li id="s2"><code>FlywayProperties.java</code> from <code>spring-boot-flyway-4.1.1-sources.jar</code>. Confirms <code>out-of-order</code> defaults to <code>false</code> and <code>validate-on-migrate</code> to <code>true</code>.</li>
+  <li id="s3"><a href="https://documentation.red-gate.com/fd/">Redgate Flyway documentation</a>. Ordering rules and the out-of-order setting.</li>
+  <li id="s4"><a href="https://www.red-gate.com/hub/product-learning/flyway/how-to-fix-or-avoid-ignored-migrations-in-flyway">Redgate: ignored migrations</a>. Behaviour when a lower version arrives after a higher one.</li>
+</ol>
+
+<p class="next">
+  Lesson 03 · <a href="0002-flyway-database-migrations.html">previous</a> ·
+  <a href="0004-flyway-development-workflow.html">next</a> ·
+  <a href="../index.html">workspace</a>
+</p>
+
+</main>
+
+<script src="../assets/quiz.js"></script>
+</body>
+</html>
