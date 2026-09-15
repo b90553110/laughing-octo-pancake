@@ -153,6 +153,34 @@ The same applies to consequences. Describe what happens, without intensifiers:
 statement is not inflation: "starts the whole application context" describes what
 `@SpringBootTest` does, so it stays.
 
+### Explain in place
+
+Removing an inflated claim does not mean compressing the sentence. Compression
+produced this, which says nothing a reader can use:
+
+> "Section 04 covers what a trace contains and why this mode costs nothing while
+> tests pass."
+
+Three faults sit in that one sentence. The lesson never introduces the word
+"mode", so the reader cannot tell what it refers to. "Costs nothing" never says
+cost of what, so there is no claim to agree or disagree with. The bullet sends
+the reader to section 04 instead of explaining itself, while the three bullets
+around it stand alone.
+
+Three rules follow.
+
+- **Name the noun.** Write "the value `'on-first-retry'`", not "this mode". A
+  demonstrative is fine only when its referent sits in the same sentence.
+- **Quantify a cost or drop it.** "Costs nothing" is not a statement until the
+  sentence names the resource. "Saving a trace for every run adds seconds to each
+  test and produces files that reach gigabytes" can be argued with.
+- **Explain where the reader is.** A bullet that introduces a setting says what
+  the setting does, in that bullet. Cross-references add detail for someone who
+  wants it; they never carry the explanation itself.
+
+`tools/stop-slop-check.py` fails on the `unexplained` patterns, which cover the
+unquantified cost claims and the "this mode" class of dangling referent.
+
 ### Em dashes
 
 Removed from the workspace entirely, per stop-slop. Use a comma for an aside, a

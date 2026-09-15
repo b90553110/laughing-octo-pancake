@@ -59,9 +59,10 @@ docker compose down -v &amp;&amp; docker compose up -d db
 
 <div class="note">
   <span class="label">Recommendation</span>
-  <p>Make this one command and put it in the README. This workflow depends on rebuilding
-  being cheap: an engineer who finds it tedious will start editing the shared database by hand,
-  and the repository stops describing the schema. Optimise the reset, not the workaround.</p>
+  <p>Keep the rebuild to a single command that finishes in seconds, and put that command in the
+  README. An engineer who finds the rebuild tedious will start editing the shared database by hand
+  instead, and the repository then stops describing the schema. Spend the effort on making the
+  reset fast rather than on working around a slow one.</p>
 </div>
 
 <h3>flyway clean, narrower, and disabled by default</h3>
@@ -215,8 +216,8 @@ situation precisely.</p>
     <button type="button">Yes, until that migration has run somewhere else</button>
     <button type="button">No, unless you also bump its version number</button>
     <p class="why" hidden>The rule protects databases you do not control. A migration that has run
-    only on your machine has no other history table recording its checksum, so editing it costs
-    nothing.</p>
+    only on your machine has no other history table recording its checksum, so editing it
+  breaks nothing.</p>
   </div>
 
   <div class="q" data-answer="3">

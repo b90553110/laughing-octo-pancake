@@ -127,3 +127,20 @@ Preferences and observations that shape how lessons get written.
   statement would do. Directness, plain words and no inflation are three faces of
   the same correction.
 
+## Session 8 (15 Sep 2026)
+
+- The learner could not parse a sentence I wrote in session 7: "Section 04 covers
+  what a trace contains and why this mode costs nothing while tests pass." They
+  were right. "Mode" appears nowhere else in the lesson, "costs nothing" names no
+  resource, and the bullet defers to a later section while its three neighbours
+  explain themselves.
+- Cause worth remembering: I fixed an inflated claim by deleting words rather
+  than by replacing the claim with the mechanism. Compression is not the cure for
+  inflation. Both leave the reader without the fact.
+- Rewrote the bullet to define a trace at first mention, state what
+  `on-first-retry` does on a pass and on a failure, and give the cost of the
+  alternative in seconds and gigabytes. Found three more unquantified cost claims
+  elsewhere and fixed those too.
+- Added an `unexplained` category to the checker and an "Explain in place"
+  section to `CLAUDE.md`.
+

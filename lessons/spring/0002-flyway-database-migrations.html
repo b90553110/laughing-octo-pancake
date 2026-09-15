@@ -302,8 +302,9 @@ responses exist, and they are not equivalent:</p>
     <button type="button">Boot 4 runs migrations only within test scope</button>
     <button type="button">Boot 4 needs migrations named a different way</button>
     <p class="why" hidden>Spring Boot 4 auto-configures Flyway from
-    <code>spring-boot-starter-flyway</code>, not from <code>flyway-core</code>. The silence makes
-    this expensive to diagnose: nothing fails, and the tables do not exist.</p>
+    <code>spring-boot-starter-flyway</code>, not from <code>flyway-core</code>. Nothing fails and no error appears, so the missing tables are
+    the only symptom, which sends people to check their migration files long before they check
+    their dependencies.</p>
   </div>
 
 </div>

@@ -52,6 +52,14 @@ INFLATION = [
     r"your whole \w+", r"the whole point",
 ]
 
+# Claims the reader cannot check, because the sentence never says what is being
+# spent or what the pronoun points at. State the unit, or name the noun.
+UNEXPLAINED = [
+    r"costs? nothing", r"\bfor free\b", r"at no cost", r"without paying",
+    r"\bthis mode\b", r"\bthat mode\b", r"\bthe mode\b",
+    r"is cheap\b", r"being cheap\b", r"\bpretty fast\b", r"\bquite slow\b",
+]
+
 # Carve-outs recorded in CLAUDE.md. Technical writing needs these.
 ALLOW_ADVERB_CONTEXT = ["concurrently", "automatically", "explicitly", "implicitly",
                         "independently", "transactionally", "quietly", "silently"]
@@ -105,7 +113,8 @@ def check(path):
     if adv: found["adverb"] = sorted(set(adv))
 
     for name, pats in (("binary-contrast", BINARY), ("false-agency", AGENCY),
-                       ("lazy-extreme", EXTREMES), ("inflation", INFLATION)):
+                       ("lazy-extreme", EXTREMES), ("inflation", INFLATION),
+                       ("unexplained", UNEXPLAINED)):
         hits = [m.group(0) for p in pats for m in re.finditer(p, low)]
         if hits: found[name] = sorted(set(hits))
 

@@ -25,9 +25,9 @@
 <p>This track covers end-to-end testing, which has little in common with the Spring track apart
 from a shared concern: a test should fail when the application breaks, and at no other time.</p>
 
-<p>When an end-to-end suite fails for reasons unrelated to
-the application, people stop trusting the results, then stop reading them, and eventually delete
-the suite. Two things determine whether that happens to you: how the test waits for the page, and
+<p>Failing only when the application breaks is the harder half. When an end-to-end suite fails for
+reasons unrelated to the application, people stop trusting the results, then stop reading them, and
+eventually delete the suite. Two things determine whether that happens to you: how the test waits for the page, and
 how it finds elements. This lesson covers waiting, and lesson 02 covers finding elements.</p>
 
 <h2><span class="num">01</span>Install</h2>
@@ -103,9 +103,12 @@ export default defineConfig({
   <li><strong><code>baseURL</code></strong> lets a test call <code>page.goto('/register')</code>
   rather than repeating the host in every test. If you set it from an environment variable, the
   same suite can run against a deployed environment without any other change.</li>
-  <li><strong><code>trace: 'on-first-retry'</code></strong> controls what Playwright records when a
-  test fails. Section 04 covers what a trace contains and why this mode costs nothing while tests
-  pass.</li>
+  <li><strong><code>trace: 'on-first-retry'</code></strong> decides when Playwright saves a
+  <em>trace</em>, which is a recording of one test run that you open afterwards to see what the
+  page looked like at each step. The value <code>'on-first-retry'</code> saves no trace while a
+  test passes. When a test fails, Playwright runs it a second time and saves a trace of that second
+  run. The alternative, <code>'on'</code>, records every run, which adds seconds to each test and
+  fills the disk on a large suite. Section 04 shows what a trace contains and how to open one.</li>
   <li><strong><code>forbidOnly</code></strong> turns a <code>test.only</code> that reaches CI into
   a build failure. Without it, CI runs that one test and skips the rest.</li>
 </ul>
@@ -166,10 +169,11 @@ answers "it fails in CI but passes locally" without guessing.</p>
 
 <div class="note">
   <span class="label">Why on-first-retry rather than every run</span>
-  <p>Recording a trace for every test run costs both time and disk space. The
-  <code>on-first-retry</code> setting records nothing while tests pass, and produces a complete
-  trace as soon as a test fails and Playwright retries it. You get the diagnostic information when
-  you need it without paying for it the rest of the time.</p>
+  <p>Saving a trace for every run adds seconds to each test and produces files that reach
+  gigabytes on a suite of any size. With <code>on-first-retry</code>, a run where every test passes
+  writes no traces at all, and a run with one failure writes one trace, for the retry of that
+  failure. You get the recording for the test you need to debug and nothing for the hundreds that
+  worked.</p>
 </div>
 
 <h2><span class="num">05</span>Deciding what to test at this level</h2>
