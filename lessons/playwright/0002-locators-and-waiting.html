@@ -12,26 +12,27 @@
 <header class="masthead wrap">
   <p class="crumb"><a href="../../index.html">Workspace</a> · Playwright track · Lesson 02</p>
   <h1>Locators and waiting</h1>
-  <p class="standfirst">How you find an element decides whether your suite survives the next refactor. This is the highest-leverage decision in the track.</p>
+  <p class="standfirst">How a test finds an element determines whether it still works after someone refactors the application. This is the most consequential decision in the track.</p>
   <p class="meta-line">
     ~20 minutes · Playwright 1.63.0 · Angular 22 · Angular Material<br>
-    I did not execute this code. Report any behaviour that differs.
+    I did not execute the code in this lesson. Please report anything that behaves differently.
   </p>
 </header>
 
 <main class="wrap">
 
-<p>Most end-to-end suites die the same way: a developer restructures a component, forty tests fail,
-nobody can tell which failures indicate real bugs, and the suite gets marked skipped. The cause is
-almost always the locators.</p>
+<p>End-to-end suites usually become unusable in the same way. A developer restructures a component,
+a large number of tests fail at once, nobody can work out which of those failures represent real
+bugs, and the team marks the suite as skipped. In most cases the locators are what caused it.</p>
 
-<p>A locator that describes <em>the DOM structure</em> breaks when the structure changes. A locator
-that describes <em>what the user sees</em> breaks when the user-visible behaviour changes — which
-is precisely when a test should fail.</p>
+<p>The reason is straightforward. A locator that describes the structure of the DOM breaks whenever
+that structure changes, including changes that make no difference to anyone using the application.
+A locator that describes what the user can see only breaks when the user-visible behaviour changes,
+which is exactly when you want a test to fail.</p>
 
 <h2><span class="num">01</span>The priority order</h2>
 
-<p>Work down this list and stop at the first option that fits:</p>
+<p>Work down this list and use the first option that fits the element you need:</p>
 
 <pre><code>1. getByRole(&#x27;button&#x27;, { name: &#x27;Save&#x27; })   ← default choice
 2. getByLabel(&#x27;Email&#x27;)                     ← form fields
@@ -40,30 +41,30 @@ is precisely when a test should fail.</p>
 5. getByTestId(&#x27;user-row&#x27;)                 ← deliberate escape hatch
 6. locator(&#x27;.mat-mdc-button&#x27;)              ← last resort</code></pre>
 
-<p>Compare the two styles directly:</p>
+<p>The difference between the two approaches is easier to see side by side:</p>
 
-<pre><code>// Brittle. Every one of these breaks on a refactor
-// that changes nothing a user can perceive.
+<pre><code>// Fragile. Each of these breaks when someone refactors
+// the markup without changing anything a user can see.
 page.locator(&#x27;.mat-mdc-raised-button.mat-primary&#x27;)
 page.locator(&#x27;app-register-form &gt; div &gt; form &gt; button:nth-child(3)&#x27;)
 page.locator(&#x27;//div[@id=&quot;main&quot;]/app-user-list/table/tbody/tr[2]&#x27;)</code></pre>
-<pre><code>// Durable. Each describes what the user sees.
+<pre><code>// Durable. Each describes something the user can see.
 page.getByRole(&#x27;button&#x27;, { name: &#x27;Create account&#x27; })
 page.getByLabel(&#x27;Email&#x27;)
 page.getByRole(&#x27;row&#x27;, { name: &#x27;ada@example.test&#x27; })</code></pre>
 
 <div class="note">
-  <span class="label">The secondary benefit</span>
-  <p>A role-based locator cannot find a control that has no accessible name. That gap is usually a real
-  accessibility defect — an icon button with no <code>aria-label</code>, an input with no
-  associated label. Writing role-based locators surfaces those defects as a side effect, and fixing
-  them improves the product rather than only the test.</p>
+  <span class="label">A useful side effect</span>
+  <p>If a control has no accessible name, a role-based locator cannot find it. That gap is usually
+  a genuine accessibility problem, such as an icon button with no <code>aria-label</code> or an
+  input with no associated label. Writing locators this way tends to surface those problems, and
+  fixing them improves the application rather than only the test.</p>
 </div>
 
-<h2><span class="num">02</span>Angular Material exposes roles already</h2>
+<h2><span class="num">02</span>Angular Material already exposes roles</h2>
 
-<p>Angular Material components render correct ARIA roles without any work from you. Use them
-instead of reaching for the generated class names, which change between Material versions.</p>
+<p>Angular Material components render appropriate ARIA roles without any extra work on your part,
+so you can target those roles instead of the generated class names.</p>
 
 <pre><code>// Angular Material renders semantic roles. Use them.
 // &lt;button mat-raised-button&gt;Create account&lt;/button&gt;
@@ -78,15 +79,17 @@ const dialog = page.getByRole(&#x27;dialog&#x27;, { name: &#x27;Confirm deletion
 await dialog.getByRole(&#x27;button&#x27;, { name: &#x27;Delete&#x27; }).click();</code></pre>
 
 <div class="note">
-  <span class="label">Constraint</span>
-  <p>Never target a <code>.mat-mdc-*</code> class. Those names encode Material's internal
-  implementation and Angular has renamed them across major versions. A suite pinned to them breaks
-  on a dependency upgrade that changed nothing users can see.</p>
+  <span class="label">Avoid the generated class names</span>
+  <p>Do not write locators that target <code>.mat-mdc-*</code> classes. Those names describe
+  Material's internal implementation, and Angular has renamed them between major versions. A suite
+  that depends on them will break during a dependency upgrade that changed nothing users can
+  see.</p>
 </div>
 
 <h2><span class="num">03</span>Strict mode</h2>
 
-<p>A Playwright locator that matches more than one element fails rather than guessing:</p>
+<p>When a locator matches more than one element, Playwright reports an error rather than choosing
+one:</p>
 
 <pre><code>// Two &quot;Delete&quot; buttons on the page:
 await page.getByRole(&#x27;button&#x27;, { name: &#x27;Delete&#x27; }).click();
@@ -94,13 +97,14 @@ await page.getByRole(&#x27;button&#x27;, { name: &#x27;Delete&#x27; }).click();
 // Error: strict mode violation: getByRole(&#x27;button&#x27;, { name: &#x27;Delete&#x27; })
 // resolved to 2 elements</code></pre>
 
-<p>Treat this error as a design signal, not an obstacle. It means your description was ambiguous,
-and <code>.first()</code> resolves the ambiguity by picking an arbitrary element — which is how a
-test starts deleting the wrong user after a sort order changes.</p>
+<p>It is worth treating this error as useful information rather than an obstacle. It tells you the
+description was ambiguous. Adding <code>.first()</code> resolves the ambiguity by picking an
+arbitrary element, which is how a test ends up deleting the wrong user once the sort order
+changes.</p>
 
-<p>Resolve ambiguity by narrowing the context instead:</p>
+<p>A better fix is to narrow the area the locator searches:</p>
 
-<pre><code>// Fix by scoping, not by picking an index.
+<pre><code>// Narrow the search area rather than picking an index.
 const row = page.getByRole(&#x27;row&#x27;, { name: &#x27;ada@example.test&#x27; });
 await row.getByRole(&#x27;button&#x27;, { name: &#x27;Delete&#x27; }).click();
 
@@ -112,15 +116,16 @@ await page.getByRole(&#x27;listitem&#x27;)
 
 <div class="note">
   <span class="label">In review</span>
-  <p>Reject <code>.first()</code>, <code>.last()</code> and <code>.nth(n)</code> unless the test is
-  genuinely about position — "the first row is the newest". Every other use hides an ambiguity that
-  will resolve differently one day.</p>
+  <p>Question any use of <code>.first()</code>, <code>.last()</code> or <code>.nth(n)</code> unless
+  the test is genuinely about position, such as checking that the newest item appears at the top of
+  a list. In other cases these methods conceal an ambiguity that will eventually resolve to a
+  different element.</p>
 </div>
 
 <h2><span class="num">04</span>Web-first assertions</h2>
 
-<p>Playwright's <code>expect</code> retries. That property is what lets you delete every manual
-wait:</p>
+<p>Playwright's <code>expect</code> retries its condition, which is what allows you to remove
+manual waits from a test:</p>
 
 <pre><code>// Web-first: each retries until it passes or times out.
 await expect(page.getByRole(&#x27;alert&#x27;)).toBeVisible();
@@ -128,38 +133,40 @@ await expect(page.getByRole(&#x27;row&#x27;)).toHaveCount(3);
 await expect(page.getByLabel(&#x27;Email&#x27;)).toHaveValue(&#x27;ada@example.test&#x27;);
 await expect(page).toHaveURL(/\/users\/\d+/);
 
-// NOT web-first: evaluates once, no retry. A race.
+// NOT web-first: evaluates once, no retry. A race condition.
 expect(await page.getByRole(&#x27;alert&#x27;).isVisible()).toBe(true);</code></pre>
 
-<p>Note the final line carefully. Calling <code>await locator.isVisible()</code> and asserting on
-the boolean evaluates the page <strong>once</strong>. No retry happens, so the assertion runs
-against whatever the DOM held at that instant. That single pattern accounts for a large share of
-flaky Playwright tests.</p>
+<p>The last line in that example deserves a closer look, because it behaves differently from the
+ones above it. Calling <code>await locator.isVisible()</code> and then asserting on the boolean
+result checks the page only once, so nothing retries, and the assertion runs against whatever the
+page happened to contain at that instant. This pattern is responsible for a large share of flaky
+Playwright tests.</p>
 
 <div class="note">
-  <span class="label">The distinction to memorise</span>
-  <p><code>await expect(locator).toBeVisible()</code> retries.
-  <code>expect(await locator.isVisible()).toBe(true)</code> does not. Put the
-  <code>await</code> before <code>expect</code>, never inside it.</p>
+  <span class="label">The distinction worth remembering</span>
+  <p><code>await expect(locator).toBeVisible()</code> retries the condition, whereas
+  <code>expect(await locator.isVisible()).toBe(true)</code> does not. The
+  <code>await</code> belongs before <code>expect</code> rather than inside it.</p>
 </div>
 
 <h2><span class="num">05</span>When nothing semantic fits</h2>
 
-<p>Some elements carry no role and no label — a status region, a computed total. Add an explicit
-test hook rather than falling back to a CSS path:</p>
+<p>Some elements have no useful role and no label, such as a status region or a computed total. For
+those, add an explicit hook for tests rather than falling back to a CSS path:</p>
 
 <pre><code>&lt;!-- When no role or label fits, add an explicit hook --&gt;
 &lt;div data-testid=&quot;user-row-total&quot;&gt;42 users&lt;/div&gt;</code></pre>
 
-<p>A <code>data-testid</code> is a contract: it exists for tests, and a developer who sees it knows
-that renaming it breaks something. A class name carries no such signal, which is why someone will
-eventually rename it during a styling change.</p>
+<p>A <code>data-testid</code> attribute acts as a contract. It exists for the tests, and a
+developer who encounters it can see that renaming it will break something. A class name carries no
+such signal, so sooner or later someone renames it while changing the styling.</p>
 
 <div class="note plain">
-  <span class="label">Order of preference, restated</span>
-  <p>Prefer a role. Add an accessible name to the component when the role alone is ambiguous —
-  that improves the product. Add a <code>data-testid</code> when no semantic option exists. Reach
-  for CSS only when you cannot modify the component, and record why in a comment.</p>
+  <span class="label">The order of preference, restated</span>
+  <p>Use a role where one fits. Where the role alone is ambiguous, add an accessible name to the
+  component, which improves the application as well as the test. Add a <code>data-testid</code>
+  when no semantic option exists. Fall back to CSS only when you cannot change the component, and
+  leave a comment explaining why.</p>
 </div>
 
 <hr>
@@ -174,9 +181,10 @@ eventually rename it during a styling change.</p>
     <button type="button">An XPath expression describing the exact DOM position</button>
     <button type="button">getByRole together with the element's own accessible name</button>
     <button type="button">getByTestId using a test attribute you added yourself</button>
-    <p class="why" hidden>Role plus accessible name describes what the user perceives, so it
-    survives DOM and styling changes. <code>getByTestId</code> is the deliberate escape hatch when
-    nothing semantic fits; CSS and XPath come last.</p>
+    <p class="why" hidden>A role combined with an accessible name describes what the user
+    perceives, so it survives changes to the DOM and the styling.
+    <code>getByTestId</code> is the deliberate fallback when nothing semantic fits, and CSS and
+    XPath come last.</p>
   </div>
 
   <div class="q" data-answer="0">
@@ -185,9 +193,9 @@ eventually rename it during a styling change.</p>
     <button type="button">The need to write assertions about page state</button>
     <button type="button">Browser startup time between the individual test files</button>
     <button type="button">The need to install browser binaries before running</button>
-    <p class="why" hidden>Before acting, Playwright waits for the element to be attached, visible,
-    stable, enabled and able to receive events. Assertions still matter — web-first assertions are
-    how you express a wait correctly.</p>
+    <p class="why" hidden>Before acting on an element, Playwright waits for it to be present,
+    visible, stable, enabled and able to receive the action. Assertions are still necessary, and
+    web-first assertions are how you express a wait correctly.</p>
   </div>
 
   <div class="q" data-answer="1">
@@ -196,8 +204,9 @@ eventually rename it during a styling change.</p>
     <button type="button">Fails the test with a strict mode violation</button>
     <button type="button">Acts on both elements in their document order</button>
     <button type="button">Waits until only one of them remains visible</button>
-    <p class="why" hidden>Strict mode refuses to guess. Fix the ambiguity by scoping the locator
-    inside a row, dialog or list item, rather than by adding <code>.first()</code>.</p>
+    <p class="why" hidden>Strict mode reports the ambiguity instead of guessing. The right fix is
+    to scope the locator inside the relevant row, dialog or list item, rather than adding
+    <code>.first()</code>.</p>
   </div>
 
 </div>
@@ -205,23 +214,25 @@ eventually rename it during a styling change.</p>
 <h2><span class="num">07</span>Read this next</h2>
 
 <p><strong><a href="https://playwright.dev/docs/best-practices">Playwright: Best Practices</a></strong>
-— the maintainers' own guidance. It agrees with this lesson and goes further on test isolation.</p>
+sets out the maintainers' own guidance. It agrees with this lesson and goes further on keeping
+tests isolated from one another.</p>
 
-<p>Keep the <a href="../../reference/playwright-cheatsheet.html">Playwright reference sheet</a> open
-while writing tests; it lists the locator priority and the retry-versus-no-retry assertion forms
-side by side.</p>
+<p>The <a href="../../reference/playwright-cheatsheet.html">Playwright reference sheet</a> lists the
+locator priority and the two assertion forms side by side, which is handy while you are still
+getting used to the difference.</p>
 
 <div class="note">
   <span class="label">Ask me</span>
-  <p>The next lessons in this track cover authentication state reused across tests, network
-  interception for deterministic data, the page object debate, and running the suite in CI. Ask for
-  whichever blocks you first, rather than taking them in order.</p>
+  <p>Later lessons in this track cover reusing a logged-in session across tests, intercepting
+  network calls so tests get predictable data, whether page objects are worth the indirection, and
+  running the suite in CI. Ask for whichever one blocks you first rather than taking them in
+  order.</p>
 </div>
 
 <h2 id="sources"><span class="num">08</span>Sources</h2>
 
 <ol class="sources">
-  <li id="s1"><a href="https://playwright.dev/docs/locators">Playwright documentation: Locators</a>. The priority order quoted in §01.</li>
+  <li id="s1"><a href="https://playwright.dev/docs/locators">Playwright documentation: Locators</a>. The priority order quoted in section 01.</li>
   <li id="s2"><a href="https://playwright.dev/docs/best-practices">Playwright documentation: Best Practices</a>. Locator choice, strict mode and web-first assertions.</li>
   <li id="s3"><a href="https://playwright.dev/docs/actionability">Playwright documentation: Auto-waiting</a>. The actionability checks performed before each action.</li>
   <li id="s4"><a href="https://material.angular.io/cdk/a11y/overview">Angular Material accessibility overview</a>. ARIA roles rendered by Material components.</li>

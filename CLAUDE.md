@@ -88,6 +88,26 @@ preferences; the learner set them explicitly.
 - **Direct and authoritative.** Give the instruction, then the reason. Write
   "Add the starter" rather than "you might want to add the starter". Make
   recommendations as recommendations, and mark genuine uncertainty as uncertainty.
+- **Plain words, ordinary sentences.** Direct does not mean punchy. Write
+  complete sentences of ordinary length, joined by the words that carry the
+  reasoning: because, so, which means, rather than. Prefer the plain word over
+  the vivid one — "breaks" over "dies", "slower" over "costly", "matters most"
+  over "highest-leverage".
+
+  Specifically, avoid:
+  - **Sentence fragments used for emphasis.** "No waits. No sleeps. No CSS
+    selectors." Write "There are no explicit waits, no sleeps, and no CSS
+    selectors" instead.
+  - **One-line paragraphs that pronounce.** "Spend them deliberately." Explain
+    what to do and why in a normal sentence.
+  - **Dramatic framing.** "Most suites die the same way" and "that clause is the
+    whole difficulty" both overstate. Describe what happens and why.
+  - **Build-up before the point.** Say the thing, then explain it. Do not
+    withhold it for effect.
+
+  A useful check: count prose sentences of six words or fewer. Above roughly ten
+  percent of sentences, the writing has become clipped. The Playwright lessons
+  sit near five percent and read the way the learner asked for.
 - **Technical precision over readability flourishes.** Quote exact error strings,
   exact property names and exact defaults. Verify each against the source — a jar,
   a POM, or official documentation — before publishing.
@@ -98,7 +118,9 @@ correct. Vary which index holds the correct answer across the questions in a
 lesson; three questions all answered by the first option is its own tell.
 
 Lesson 01 predates these rules and still uses the older conversational voice.
-Rewrite it when convenient; do not write anything new in that voice.
+The Spring lessons predate the plain-words rule and read more clipped than the
+Playwright track. Rewrite them when convenient; do not write anything new in
+either voice.
 
 ## The teach skill
 

@@ -103,10 +103,10 @@
   <table>
     <thead><tr><th>Rule</th><th>Reason</th></tr></thead>
     <tbody>
-      <tr><td><code>Never call waitForTimeout</code></td><td>A fixed sleep is too short, too long, or both.</td></tr>
+      <tr><td><code>Never call waitForTimeout</code></td><td>A fixed sleep is usually too short or too long, and often both.</td></tr>
       <tr><td><code>Put await before expect</code></td><td>await expect(loc) retries; expect(await loc) does not.</td></tr>
       <tr><td><code>Never target .mat-mdc-* classes</code></td><td>Angular Material renames them between versions.</td></tr>
-      <tr><td><code>Fix strict mode by scoping</code></td><td>.first() picks arbitrarily and eventually picks wrong.</td></tr>
+      <tr><td><code>Fix strict mode by scoping</code></td><td>.first() picks an arbitrary element and will eventually pick the wrong one.</td></tr>
       <tr><td><code>Test few journeys, deeply</code></td><td>Push component behaviour down to Angular&#x27;s own tests.</td></tr>
       <tr><td><code>Do not assert on styling</code></td><td>It changes for reasons unrelated to correctness.</td></tr>
     </tbody>

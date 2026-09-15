@@ -78,3 +78,18 @@ Preferences and observations that shape how lessons get written.
   layers lesson needs the annotation present to be honest about where the
   transaction boundary sits.
 
+## Session 5 (15 Sep 2026)
+
+- The learner rejected the Playwright track's voice as "weirdly punchy" and asked
+  for clarity and plain words. The cause was mine: I read the earlier "direct and
+  authoritative" instruction as licence for short declarative fragments, dramatic
+  openings and one-line pronouncements. Direct means stating the point plainly,
+  not compressing it for effect.
+- Rewrote both Playwright lessons. Measured before and after by counting prose
+  sentences of six words or fewer: both fell from roughly twenty percent to under
+  five. That count is a usable proxy for the problem and now sits in `CLAUDE.md`.
+- The same measurement shows the Spring lessons run between fifteen and twenty-nine
+  percent, so they carry the same fault. The learner named only the Playwright
+  track, so I left them and reported the numbers instead of rewriting six files
+  unasked.
+
