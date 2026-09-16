@@ -73,119 +73,35 @@ a link — it is read in the repository, not on the site.
 
 ## Writing style for lessons
 
-The base rules come from the **stop-slop** skill in `.claude/skills/stop-slop/`,
-a verbatim copy of <https://github.com/hardikpandya/stop-slop>. Read
-`SKILL.md` and its three reference files before writing prose. They cover banned
-phrases, structural cliches, false agency, passive voice and rhythm.
+**Read [WRITING-STYLE.md](WRITING-STYLE.md) before writing or editing any lesson,
+reference sheet or page.** It collects every style decision with the examples
+that produced it, and it is the authority. The summary below exists so that a
+session which has not opened it still avoids the worst mistakes.
 
-`tools/stop-slop-check.py` enforces the machine-checkable parts across
-`lessons/`, `reference/` and `index.html`. Run it before every commit:
+Run the checker before every commit. It exits non-zero on any violation:
 
-```
+```sh
 python3 tools/stop-slop-check.py --verbose
 ```
 
-It exits non-zero on any violation. The whole workspace passes as of this
-writing.
+The seven rules, in short:
 
-### Carve-outs for technical writing
+1. **Active voice.** Name the actor.
+2. **Plain words, ordinary sentences.** Direct does not mean punchy. No
+   fragments for emphasis, no one-line pronouncements.
+3. **Do not inflate.** State what a thing does; let the reader judge importance.
+4. **Explain in place.** Name the noun rather than "this mode". Quantify a cost
+   or drop it. A cross-reference adds detail, it never carries the explanation.
+5. **Technical precision.** Verify every version, default and error string
+   against a jar, a POM, a registry or official docs. Say whether you ran the
+   code.
+6. **Rhythm.** Never stack short sentences. A single short imperative is fine.
+7. **No em dashes.** Comma, colon or full stop.
 
-stop-slop targets essays. Four of its rules damage technical documentation, so
-this workspace departs from them deliberately. Do not "fix" these.
-
-- **Adverbs.** stop-slop says remove all of them. Keep the ones that carry
-  technical meaning: `CREATE INDEX CONCURRENTLY` is a SQL keyword, and
-  "Spring injects that constructor automatically", "fails silently" and "runs
-  transactionally" each state a fact that costs a clause to say otherwise. The
-  checker still bans the empty ones: really, just, simply, actually, genuinely,
-  honestly, literally, truly, deeply, fundamentally.
-- **"Never" and "always".** stop-slop calls these lazy extremes. "Never modify a
-  migration that has run elsewhere" is a precise absolute, not false authority,
-  so `never` stays allowed. `everyone`, `everybody`, `nobody` and `always` remain
-  banned, because they hide the actor.
-- **Wh- sentence openers.** stop-slop bans them. Quiz stems must be questions
-  ("What does Flyway store in the history table?"), so the checker does not test
-  for this. Avoid Wh- openers in body prose.
-- **Three-item lists.** stop-slop prefers two. A technical enumeration reports
-  a fact: Spring Boot has three layers and Flyway has three per-database module
-  naming patterns, so list however many exist. The rule applies to rhetorical
-  triads in prose, not to enumerations.
-
-Reference sheets are exempt from the sentence-rhythm checks. A cheat sheet is
-telegraphic on purpose.
-
-### Rhythm
-
-The defect to avoid is **stacked** short sentences, which read as manufactured
-emphasis: "No waits. No sleeps. No CSS selectors." The checker fails any run of
-two or more consecutive sentences of six words or fewer, excluding lead-ins that
-end in a colon.
-
-A single short imperative is fine and often correct. "Use constructors." is the
-directness the learner asked for.
-
-The checker also reports a short-sentence ratio per file. It does not fail on
-that number, because ordinary imperatives push it up without making the prose
-clipped. Treat it as drift detection. The Playwright lessons sit near five
-percent and the Spring lessons between eight and twenty-three.
-
-### Do not inflate
-
-State what a thing does and let the reader judge its importance. Ranking claims
-carry no information and read as filler.
-
-| Instead of | Write |
-|---|---|
-| "Section 04 explains why this setting matters more than the others." | "Section 04 covers what a trace contains." |
-| "the most useful tool available when a test fails in CI" | "Open it when a test fails only in CI." |
-| "This is the most consequential decision in the track." | Cut it. The preceding sentence already says what the decision controls. |
-| "responsible for a large share of flaky tests" | "A test written this way passes or fails depending on how quickly the page renders." |
-| "That inversion accounts for most of the framework." | "Spring is built around that inversion, and its other features assume it." |
-
-The same applies to consequences. Describe what happens, without intensifiers:
-
-| Instead of | Write |
-|---|---|
-| "quietly reduces your whole CI run to a single test" | "CI runs that one test and skips the rest." |
-| "This single check proves more than the other two combined." | "This check runs the SQL rather than inspecting filenames, so it catches errors the other two cannot see." |
-
-`tools/stop-slop-check.py` fails on the `inflation` patterns. A literal scope
-statement is not inflation: "starts the whole application context" describes what
-`@SpringBootTest` does, so it stays.
-
-### Explain in place
-
-Removing an inflated claim does not mean compressing the sentence. Compression
-produced this, which says nothing a reader can use:
-
-> "Section 04 covers what a trace contains and why this mode costs nothing while
-> tests pass."
-
-Three faults sit in that one sentence. The lesson never introduces the word
-"mode", so the reader cannot tell what it refers to. "Costs nothing" never says
-cost of what, so there is no claim to agree or disagree with. The bullet sends
-the reader to section 04 instead of explaining itself, while the three bullets
-around it stand alone.
-
-Three rules follow.
-
-- **Name the noun.** Write "the value `'on-first-retry'`", not "this mode". A
-  demonstrative is fine only when its referent sits in the same sentence.
-- **Quantify a cost or drop it.** "Costs nothing" is not a statement until the
-  sentence names the resource. "Saving a trace for every run adds seconds to each
-  test and produces files that reach gigabytes" can be argued with.
-- **Explain where the reader is.** A bullet that introduces a setting says what
-  the setting does, in that bullet. Cross-references add detail for someone who
-  wants it; they never carry the explanation itself.
-
-`tools/stop-slop-check.py` fails on the `unexplained` patterns, which cover the
-unquantified cost claims and the "this mode" class of dangling referent.
-
-### Em dashes
-
-Removed from the workspace entirely, per stop-slop. Use a comma for an aside, a
-colon before a definition or a list, and a full stop between two complete
-thoughts.
+Base rules come from the stop-slop skill at `.claude/skills/stop-slop/`.
+`WRITING-STYLE.md` records four deliberate departures from it for technical
+writing, covering adverbs, "never", Wh- openers in quiz stems, and enumerations
+longer than two items. Do not reverse those without reading the reasoning.
 
 ## The teach skill
 

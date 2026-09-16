@@ -144,3 +144,19 @@ Preferences and observations that shape how lessons get written.
 - Added an `unexplained` category to the checker and an "Explain in place"
   section to `CLAUDE.md`.
 
+## Session 9 (16 Sep 2026)
+
+- Collated every style decision into `WRITING-STYLE.md` and cut the style section
+  of `CLAUDE.md` down to a pointer plus a seven-line summary. `CLAUDE.md` went
+  from about 190 lines to 116, which matters because it loads on every session
+  while the style guide loads when someone writes prose.
+- The guide keeps the worked examples rather than only the rules. The rules on
+  their own read as platitudes; "Section 04 explains why this setting matters
+  more than the others" next to its replacement does not.
+- Added a final table mapping each correction the learner made to the rule it
+  produced, so a future session can see intent rather than guessing at it.
+- Extended the checker to read Markdown so the guide obeys its own rules. It
+  skips fenced code, tables, blockquotes, headings and quoted phrases, because
+  the guide quotes the wordings it bans. Checking the guide found four passives
+  I had written into it.
+

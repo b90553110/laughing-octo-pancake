@@ -68,8 +68,35 @@ ALLOW_PASSIVE = {"is disabled", "is enabled", "be visible", "be stable", "be pre
                  "is managed", "be injected", "is generated", "be scoped", "be expressed", "is exactly", "be installed"}
 # "never" is allowed: the migration rule is a precise absolute, not false authority.
 
+def markdown_body(path):
+    """Prose lines of a Markdown file.
+
+    Skips fenced code, tables, blockquotes and headings. The style guide quotes
+    the phrasings it bans inside tables and blockquotes, so counting those would
+    flag the document for the examples it exists to warn about.
+    """
+    out, in_fence = [], False
+    for line in open(path).read().split("\n"):
+        stripped = line.strip()
+        if stripped.startswith("```"):
+            in_fence = not in_fence
+            continue
+        if in_fence or not stripped:
+            continue
+        if stripped[0] in "|>#":
+            continue
+        stripped = re.sub(r"`[^`]*`", "CODE", stripped)
+        # A phrase in quotes is being discussed, not used. The guide quotes the
+        # wordings it bans, so checking them would flag it for its own examples.
+        stripped = re.sub(r'"[^"]*"', "QUOTED", stripped)
+        out.append(stripped)
+    return out
+
+
 def prose_of(path):
     """All human-readable text, minus code."""
+    if path.endswith(".md"):
+        return re.sub(r"\s+", " ", " ".join(markdown_body(path)))
     raw = open(path).read()
     body = re.sub(r"<pre>.*?</pre>", " ", raw, flags=re.S)
     body = re.sub(r"<code>.*?</code>", " CODE ", body, flags=re.S)
@@ -77,8 +104,10 @@ def prose_of(path):
     return re.sub(r"\s+", " ", text)
 
 def body_paragraphs(path):
-    """Only <p> prose. Excludes tables, list items, labels and metadata lines,
+    """Only <p> prose (or Markdown prose lines). Excludes tables, list items, labels and metadata lines,
     which are telegraphic by design and must not count as fragmentation."""
+    if path.endswith(".md"):
+        return markdown_body(path)
     raw = open(path).read()
     body = re.sub(r"<pre>.*?</pre>", " ", raw, flags=re.S)
     body = re.sub(r"<table.*?</table>", " ", body, flags=re.S)
@@ -130,7 +159,7 @@ def check(path):
     # check looks for runs of two or more, not for every short sentence.
     # Exempt: sentences ending in a colon (lead-ins to a code block or list),
     # and reference sheets, which are telegraphic by design.
-    if not path.startswith("reference/"):
+    if not path.startswith("reference/") and not path.endswith(".md"):
         runs, ratio_hits, total = [], 0, 0
         for para in body_paragraphs(path):
             sents = [s for s in sentences(para) if not s.rstrip().endswith(":")]
@@ -155,7 +184,7 @@ def check(path):
 
 def main():
     files = sorted(glob.glob("lessons/**/*.html", recursive=True)) \
-          + sorted(glob.glob("reference/*.html")) + ["index.html"]
+          + sorted(glob.glob("reference/*.html")) + ["index.html", "WRITING-STYLE.md"]
     total = 0
     for f in files:
         found = check(f)

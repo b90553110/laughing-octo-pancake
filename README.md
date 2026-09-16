@@ -26,6 +26,8 @@ The first run interviews you about *why* you want to learn the topic and writes
 | `index.html`, `style.css` | The published index page linking to all material |
 | `.claude/skills/teach/` | The teach skill, picked up automatically by Claude Code |
 | `CLAUDE.md` | Conventions Claude follows when adding material |
+| `WRITING-STYLE.md` | The style rules for every lesson, with worked examples |
+| `tools/stop-slop-check.py` | Enforces those rules; run before each commit |
 | `lessons/` | Generated lessons (HTML, one per topic) |
 | `reference/` | Cheat sheets and glossaries, built to print well |
 | `learning-records/` | What you have demonstrably learned, steering what comes next |
